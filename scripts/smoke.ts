@@ -213,8 +213,9 @@ try {
     );
     if (
       cliInit.status !== 0
-      || !cliInit.stdout.includes('"dryRun": true')
-      || !cliInit.stdout.includes('"mcpServerName": "codex_agent_session_manager"')
+      || !cliInit.stdout.includes('codex-agent-session-manager init dry-run')
+      || !cliInit.stdout.includes('mcp server: codex_agent_session_manager')
+      || !cliInit.stdout.includes('Dry run only; no files were changed.')
     ) {
       throw new Error(`Unexpected CLI init dry-run result: stdout=${cliInit.stdout} stderr=${cliInit.stderr}`);
     }

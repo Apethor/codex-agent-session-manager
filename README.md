@@ -96,6 +96,10 @@ processes default to dry-run and require `--confirm` for real execution.
 Continuation and replacement prompts are operator text; prefer `--prompt-file`
 when avoiding prompt text in shell history.
 
+`init` is the exception: it prints a human-readable action list by default.
+Use `codex-agent-session-manager init --json` when automation needs the
+machine-readable form.
+
 ## Development
 
 ```powershell

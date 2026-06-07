@@ -11,15 +11,16 @@ function tempWorkspace(): string {
   return mkdtempSync(join(tmpdir(), 'codex-agent-session-manager-init-'));
 }
 
-test('parseInitArgs maps dry-run, workspace, and agents opt-out', () => {
-  assert.deepEqual(parseInitArgs(['--workspace', 'project-a', '--dry-run', '--no-agents']), {
+test('parseInitArgs maps dry-run, workspace, json, and agents opt-out', () => {
+  assert.deepEqual(parseInitArgs(['--workspace', 'project-a', '--dry-run', '--json', '--no-agents']), {
     workspace: 'project-a',
     dryRun: true,
+    json: true,
     agents: false,
   });
 });
 
-test('runInitCommand dry-run reports redacted project-scoped plan without writing files', async () => {
+test('runInitCommand dry-run defaults to human output without writing files', async () => {
   const workspace = tempWorkspace();
   const output: string[] = [];
   try {
@@ -31,9 +32,32 @@ test('runInitCommand dry-run reports redacted project-scoped plan without writin
     assert.equal(exitCode, 0);
     const text = output.join('\n');
     assert.doesNotMatch(text, new RegExp(escapeRegExp(resolve(workspace)), 'u'));
-    assert.match(text, /"workspace": "<workspace>"/u);
-    assert.match(text, /"mcpServerName": "codex_agent_session_manager"/u);
+    assert.match(text, /codex-agent-session-manager init dry-run/u);
+    assert.match(text, /workspace: <workspace>/u);
+    assert.match(text, /mcp server: codex_agent_session_manager/u);
+    assert.match(text, /create\s+<workspace>.*\.codex.*config\.toml/u);
+    assert.match(text, /Dry run only; no files were changed\./u);
     assert.equal(existsSync(join(workspace, '.codex', 'config.toml')), false);
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
+test('runInitCommand supports JSON output for automation', async () => {
+  const workspace = tempWorkspace();
+  const output: string[] = [];
+  try {
+    const exitCode = await runInitCommand(
+      ['--workspace', workspace, '--dry-run', '--json'],
+      { output: (text) => output.push(text) },
+    );
+
+    assert.equal(exitCode, 0);
+    const text = output.join('\n');
+    const payload = JSON.parse(text) as { workspace?: string; mcpServerName?: string; dryRun?: boolean };
+    assert.equal(payload.workspace, '<workspace>');
+    assert.equal(payload.mcpServerName, 'codex_agent_session_manager');
+    assert.equal(payload.dryRun, true);
   } finally {
     rmSync(workspace, { recursive: true, force: true });
   }

@@ -277,6 +277,8 @@ Phase 9 adds project bootstrap:
 
 - `codex-agent-session-manager init` prepares a target workspace without
   touching user global Codex config.
+- `init` prints a human-readable action list by default and keeps JSON
+  available through `--json`.
 - The project-scoped `.codex/config.toml` registers
   `codex_agent_session_manager` with `command = "codex-agent-session-manager"`
   and `args = ["serve"]`.

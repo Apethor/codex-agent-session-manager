@@ -48,7 +48,8 @@ The smoke must prove:
 - CLI `mcp --help` reaches the public CLI path, not the stdio server alias.
 - CLI App Server start dry-run emits JSON with `dryRun:true` and the requested
   loopback URL.
-- CLI init dry-run emits JSON for a temporary workspace without writing files.
+- CLI init dry-run emits human-readable output for a temporary workspace
+  without writing files; `--json` keeps machine-readable output.
 
 ## App Server And Session Checks
 
@@ -114,8 +115,9 @@ Current checks:
   and does not close remote TUI windows or alter user global MCP config.
 - expose public CLI commands for App Server lifecycle, MCP refresh, and session
   launch/close/replace over the same guarded operation builders used by MCP.
-- keep public CLI output JSON by default and preserve dry-run/confirm semantics
-  for process-launching or destructive operations.
+- keep public CLI operation output JSON by default and preserve
+  dry-run/confirm semantics for process-launching or destructive operations.
+- keep `init` human-readable by default with `--json` for automation.
 - initialize target projects through project-scoped `.codex/config.toml`, local
   runtime ignore rules, optional `AGENTS.md`, and package scripts when
   `package.json` already exists.

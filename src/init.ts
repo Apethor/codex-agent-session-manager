@@ -18,6 +18,7 @@ interface ParsedInitArgs {
   workspace?: string;
   dryRun?: boolean;
   agents?: boolean;
+  json?: boolean;
   help?: boolean;
 }
 
@@ -54,6 +55,7 @@ function usage(): string {
 Options:
   --workspace <path>   Target workspace. Defaults to current directory.
   --dry-run            Print the init plan without changing files.
+  --json               Print machine-readable JSON output.
   --no-agents          Do not create or update AGENTS.md.
   --help               Show this help.
 `;
@@ -88,6 +90,9 @@ export function parseInitArgs(argv: readonly string[]): ParsedInitArgs {
         break;
       case '--dry-run':
         options.dryRun = true;
+        break;
+      case '--json':
+        options.json = true;
         break;
       case '--no-agents':
         options.agents = false;
@@ -347,6 +352,34 @@ export function initPlanPreview(plan: InitPlan, applied: boolean): Record<string
   ) as Record<string, unknown>;
 }
 
+function previewPath(path: string, workspace: string): string {
+  const normalizedWorkspace = workspace.toLowerCase();
+  const normalizedPath = path.toLowerCase();
+  if (normalizedPath === normalizedWorkspace) return '<workspace>';
+  if (normalizedPath.startsWith(`${normalizedWorkspace}\\`) || normalizedPath.startsWith(`${normalizedWorkspace}/`)) {
+    return `<workspace>${path.slice(workspace.length)}`;
+  }
+  return String(redactValue(path, { workspace }));
+}
+
+function formatHumanInitPlan(plan: InitPlan, applied: boolean): string {
+  const lines = [
+    `codex-agent-session-manager init ${plan.dryRun ? 'dry-run' : applied ? 'applied' : 'plan'}`,
+    `workspace: <workspace>`,
+    `mcp server: ${plan.mcpServerName}`,
+    '',
+    'actions:',
+  ];
+  for (const action of plan.actions) {
+    const kind = action.kind.padEnd(6, ' ');
+    lines.push(`  ${kind} ${previewPath(action.target, plan.workspace)} - ${action.reason}`);
+  }
+  if (plan.dryRun) {
+    lines.push('', 'Dry run only; no files were changed.');
+  }
+  return lines.join('\n');
+}
+
 export async function runInitCommand(argv: readonly string[], deps: InitDeps = {}): Promise<number> {
   const output = deps.output ?? ((text: string) => process.stdout.write(`${text}\n`));
   const options = parseInitArgs(argv);
@@ -359,6 +392,10 @@ export async function runInitCommand(argv: readonly string[], deps: InitDeps = {
   if (!plan.dryRun) {
     applyInitPlan(plan);
   }
-  output(JSON.stringify(initPlanPreview(plan, !plan.dryRun), null, 2));
+  output(
+    options.json === true
+      ? JSON.stringify(initPlanPreview(plan, !plan.dryRun), null, 2)
+      : formatHumanInitPlan(plan, !plan.dryRun),
+  );
   return 0;
 }
