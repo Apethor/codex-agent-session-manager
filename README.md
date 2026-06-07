@@ -130,6 +130,13 @@ Continuation and replacement prompts are operator text; prefer `--prompt-file`
 when avoiding prompt text in shell history. Prompt files are resolved inside the
 current workspace and are limited before being read.
 
+`session close` matches remote TUI processes by thread id when the process argv
+contains one. Fresh remote launches may not expose the thread id in argv; in
+that case pass `--allow-workspace-url-fallback` only after reviewing the
+dry-run. The fallback closes remotes that match the same workspace and App
+Server URL, and avoids climbing to a wrapper process that also owns the App
+Server.
+
 `init` is the exception: it prints a human-readable action list by default.
 Use `codex-agent-session-manager init --json` when automation needs the
 machine-readable form.

@@ -145,6 +145,23 @@ active App Server, remote TUI, and already-loaded MCP server processes need a
 separate stop or reload before uninstalling packages when live process teardown
 matters.
 
+### H-008: fresh remote cleanup could not match remotes without thread argv
+
+Status: fixed in working tree for alpha.3.
+
+The Desktop Commander replay used a fresh remote session. Its Codex TUI process
+had the workspace and App Server URL in argv, but not the runtime thread id.
+The existing `session close --thread-id ...` matcher therefore found no target,
+even though the remote TUI was clearly associated with the test workspace.
+
+The fix adds an explicit `allowWorkspaceUrlFallback` /
+`--allow-workspace-url-fallback` opt-in. The fallback is only used when
+thread-id matching finds nothing, and it matches remotes by workspace plus App
+Server URL. A second issue surfaced during the same replay: the wrapper process
+for `remote` can own both the remote TUI and App Server. The matcher now avoids
+climbing to a wrapper root that also has an App Server child, so session cleanup
+does not silently cross the App Server lifecycle boundary.
+
 ## Accepted / Deferred Risks
 
 ### D-001: custom `OperationStore({ stateFile })` is intentionally unbounded

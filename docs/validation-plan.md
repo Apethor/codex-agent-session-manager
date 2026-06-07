@@ -102,6 +102,9 @@ Current checks:
   confirm the child turn started and replied from the scheduled continuation.
 - report matching remote TUI process roots for explicit-thread cleanup in
   `dryRun` mode;
+- support an explicit workspace+URL fallback for fresh remotes that do not
+  expose thread id in argv, while avoiding wrapper roots that also own App
+  Server child processes;
 - refuse real remote TUI cleanup unless `dryRun:false` and `confirm:true`;
 - exclude App Server processes from remote TUI cleanup targets.
 - preview Codex remote TUI launch without prompt text in `dryRun` mode;

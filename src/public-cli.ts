@@ -14,6 +14,7 @@ const MAX_PROMPT_FILE_BYTES = 16_384;
 
 const booleanFlags = new Set([
   'allow-scripts',
+  'allow-workspace-url-fallback',
   'bypass-sandbox',
   'confirm',
   'dry-run',
@@ -76,7 +77,7 @@ MCP:
 Session:
   launch:  --mode <fresh|session|last|pick> --resume-last --pick
            --bypass-sandbox --enable-image-generation
-  close:   --delay-ms <ms>
+  close:   --delay-ms <ms> --allow-workspace-url-fallback
   replace: --prompt <text> --bypass-sandbox --enable-image-generation
            --delay-ms <ms>
 `;
@@ -270,6 +271,7 @@ function sessionCommand(subcommand: string, flags: Map<string, string[]>): Parse
       threadId: requireString(flags, 'thread-id'),
     };
     addOptional(input, 'appServerUrl', stringFlag(flags, 'url'));
+    if (hasFlag(flags, 'allow-workspace-url-fallback')) input.allowWorkspaceUrlFallback = true;
     addOptional(input, 'timeoutMs', numberFlag(flags, 'timeout-ms'));
     addOptional(input, 'delayMs', numberFlag(flags, 'delay-ms'));
     addDryRunConfirm(input, flags);

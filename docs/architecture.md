@@ -208,6 +208,12 @@ Phase 5 starts with safe remote TUI cleanup:
 
 - `codex_session_close` targets only Codex remote TUI processes for the current
   workspace, selected App Server URL, and explicit `threadId`.
+- Fresh remote TUI processes may not expose a thread id in process argv. For
+  those cases, `allowWorkspaceUrlFallback` / `--allow-workspace-url-fallback`
+  is an explicit opt-in that falls back to workspace+URL matching only after
+  thread matching finds nothing.
+- The fallback avoids climbing to a launcher wrapper that also owns an App
+  Server child process, preserving the App Server lifecycle boundary.
 - It defaults to `dryRun: true`; real cleanup requires `dryRun: false` and
   `confirm: true`.
 - It does not stop App Server or archive thread history.

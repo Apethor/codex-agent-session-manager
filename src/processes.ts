@@ -21,6 +21,7 @@ export interface RemoteTuiMatchOptions {
   appServerUrl: string;
   workspace: string;
   threadId: string;
+  allowWorkspaceUrlFallback?: boolean | undefined;
 }
 
 export interface RemoteTuiTargets {
@@ -139,6 +140,11 @@ function hasToken(tokens: readonly string[], expected: string): boolean {
   return tokens.some((token) => token === expected);
 }
 
+function isCodexAppServerProcess(entry: ProcessEntry): boolean {
+  const tokens = commandLineTokens(entry.commandLine);
+  return isCodexLikeProcess(entry, tokens) && hasToken(tokens, 'app-server');
+}
+
 function isCodexLikeProcess(entry: ProcessEntry, tokens: readonly string[]): boolean {
   return /^codex(?:\.(?:cmd|exe|js))?$/iu.test(basenameToken(entry.name))
     || tokens.some((token) => /^codex(?:\.(?:cmd|exe|js))?$/iu.test(basenameToken(token)));
@@ -190,7 +196,7 @@ export function isRemoteTuiProcess(entry: ProcessEntry, options: RemoteTuiMatchO
   const cwd = optionValue(tokens, ['-C', '--cd']);
   if (!pathsMatch(cwd, options.workspace)) return false;
 
-  return referencesThreadId(tokens, options.threadId);
+  return options.allowWorkspaceUrlFallback === true || referencesThreadId(tokens, options.threadId);
 }
 
 function isRemoteWrapperProcess(entry: ProcessEntry): boolean {
@@ -217,6 +223,20 @@ function processByPid(processes: readonly ProcessEntry[]): Map<number, ProcessEn
   return new Map(processes.map((entry) => [entry.pid, entry]));
 }
 
+function descendantsContainAppServer(processes: readonly ProcessEntry[], rootPid: number): boolean {
+  const children = childrenByParent(processes);
+  const queue = [...(children.get(rootPid) ?? [])];
+  const seen = new Set<number>();
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current === undefined || seen.has(current.pid)) continue;
+    seen.add(current.pid);
+    if (isCodexAppServerProcess(current)) return true;
+    queue.push(...(children.get(current.pid) ?? []));
+  }
+  return false;
+}
+
 export function findRemoteTuiTargets(processes: readonly ProcessEntry[], options: RemoteTuiMatchOptions): RemoteTuiTargets {
   const byPid = processByPid(processes);
   const remoteProcesses = processes.filter((entry) => isRemoteTuiProcess(entry, options));
@@ -228,7 +248,7 @@ export function findRemoteTuiTargets(processes: readonly ProcessEntry[], options
     while (
       parent
       && (
-        isRemoteWrapperProcess(parent)
+        (isRemoteWrapperProcess(parent) && !descendantsContainAppServer(processes, parent.pid))
         || isDedicatedRemoteTerminalProcess(parent, options.workspace)
       )
     ) {

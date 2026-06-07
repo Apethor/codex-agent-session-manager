@@ -119,12 +119,13 @@ test('parsePublicCommand maps session commands', () => {
     },
   });
 
-  assert.deepEqual(parsePublicCommand(['session', 'close', '--thread-id', 'thread-a', '--delay-ms', '0']), {
+  assert.deepEqual(parsePublicCommand(['session', 'close', '--thread-id', 'thread-a', '--delay-ms', '0', '--allow-workspace-url-fallback']), {
     command: 'session',
     subcommand: 'close',
     input: {
       threadId: 'thread-a',
       delayMs: 0,
+      allowWorkspaceUrlFallback: true,
     },
   });
 

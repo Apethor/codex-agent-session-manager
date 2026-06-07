@@ -72,6 +72,35 @@ function processFixture(workspace = resolve(process.cwd())): ProcessEntry[] {
       name: 'codex.exe',
       commandLine: `codex.exe resume ${threadId} --remote ws://127.0.0.1:59999 -C "${workspace}"`,
     },
+    {
+      pid: 70,
+      parentPid: null,
+      name: 'codex.exe',
+      commandLine: `codex.exe --remote ${appServerUrl} -C "${workspace}"`,
+    },
+  ];
+}
+
+function combinedRemoteAppServerWrapperFixture(workspace = resolve(process.cwd())): ProcessEntry[] {
+  return [
+    {
+      pid: 80,
+      parentPid: null,
+      name: 'node.exe',
+      commandLine: `node "${workspace}\\node_modules\\codex-agent-session-manager\\dist\\cli.js" remote`,
+    },
+    {
+      pid: 81,
+      parentPid: 80,
+      name: 'windows-hidden-stdio-launcher.exe',
+      commandLine: `windows-hidden-stdio-launcher.exe codex.exe app-server --listen ${appServerUrl}`,
+    },
+    {
+      pid: 82,
+      parentPid: 80,
+      name: 'codex.exe',
+      commandLine: `codex.exe --remote ${appServerUrl} -C "${workspace}"`,
+    },
   ];
 }
 
@@ -85,6 +114,32 @@ test('findRemoteTuiTargets matches only explicit thread remote TUI roots', () =>
 
   assert.deepEqual(targets.remoteProcesses.map((entry) => entry.pid), [30]);
   assert.deepEqual(targets.roots.map((entry) => entry.pid), [10]);
+});
+
+test('findRemoteTuiTargets can explicitly fall back to workspace and URL for fresh remotes', () => {
+  const workspace = resolve(process.cwd());
+  const targets = findRemoteTuiTargets(processFixture(workspace), {
+    appServerUrl,
+    threadId: 'missing-thread-id',
+    workspace,
+    allowWorkspaceUrlFallback: true,
+  });
+
+  assert.deepEqual(targets.remoteProcesses.map((entry) => entry.pid), [30, 50, 70]);
+  assert.deepEqual(targets.roots.map((entry) => entry.pid), [10, 50, 70]);
+});
+
+test('findRemoteTuiTargets does not climb to wrapper that also owns App Server', () => {
+  const workspace = resolve(process.cwd());
+  const targets = findRemoteTuiTargets(combinedRemoteAppServerWrapperFixture(workspace), {
+    appServerUrl,
+    threadId: 'missing-thread-id',
+    workspace,
+    allowWorkspaceUrlFallback: true,
+  });
+
+  assert.deepEqual(targets.remoteProcesses.map((entry) => entry.pid), [82]);
+  assert.deepEqual(targets.roots.map((entry) => entry.pid), [82]);
 });
 
 test('buildSessionClosePayload dry run reports targets without creating operation', () => {
@@ -108,6 +163,32 @@ test('buildSessionClosePayload dry run reports targets without creating operatio
     assert.equal(payload.targetCount, 1);
     assert.equal(payload.remoteProcessCount, 1);
     assert.equal(store.snapshot().count, 0);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('buildSessionClosePayload reports fallback match only after thread match misses', () => {
+  const fixture = tempStore();
+  const { store } = fixture;
+  try {
+    const payload = buildSessionClosePayload(
+      {
+        appServerUrl,
+        threadId: 'missing-thread-id',
+        allowWorkspaceUrlFallback: true,
+      },
+      {
+        store,
+        processLister: () => processFixture(),
+      },
+    );
+
+    assert.equal(payload.ok, true);
+    assert.equal(payload.dryRun, true);
+    assert.equal(payload.targetCount, 3);
+    assert.equal(payload.remoteProcessCount, 3);
+    assert.equal(payload.fallbackUsed, true);
   } finally {
     fixture.cleanup();
   }
@@ -251,10 +332,25 @@ test('session close operation argv round trips without broad cleanup flags', () 
     operationId: 'op-a',
     appServerUrl,
     threadId,
+    allowWorkspaceUrlFallback: false,
     workspace,
     timeoutMs: 5_000,
     delayMs: 0,
   });
+});
+
+test('session close operation argv round trips workspace URL fallback opt-in', () => {
+  const workspace = resolve(process.cwd());
+  const args = buildSessionCloseOperationArgs({
+    operationId: 'op-a',
+    appServerUrl,
+    threadId,
+    allowWorkspaceUrlFallback: true,
+    workspace,
+  });
+
+  assert.match(args.join(' '), /--allow-workspace-url-fallback/u);
+  assert.equal(parseSessionCloseOperationArgs(args.slice(1)).allowWorkspaceUrlFallback, true);
 });
 
 test('session close operation argv rejects missing workspace', () => {

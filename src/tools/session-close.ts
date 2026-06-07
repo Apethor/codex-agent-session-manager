@@ -28,7 +28,11 @@ const appServerUrlSchema = z
 
 export const sessionCloseInputSchema = {
   appServerUrl: appServerUrlSchema,
-  threadId: z.string().min(1).describe('Explicit target thread id. Required; this first implementation does not support broad --all cleanup.'),
+  threadId: z.string().min(1).describe('Explicit target thread id.'),
+  allowWorkspaceUrlFallback: z
+    .boolean()
+    .optional()
+    .describe('Defaults false. If thread-specific process matching finds nothing, allow closing remote TUI processes matching the same workspace and App Server URL.'),
   dryRun: z.boolean().optional().describe('Defaults true. When true, only returns matching process evidence and does not close anything.'),
   confirm: z.boolean().optional().describe('Required true when dryRun is false.'),
   timeoutMs: z.number().int().min(0).max(MAX_TIMEOUT_MS).optional().describe('Maximum wait time for matching remote TUI processes to stop.'),
@@ -42,6 +46,7 @@ export interface SessionCloseOperationInput {
   operationId: string;
   appServerUrl: string;
   threadId: string;
+  allowWorkspaceUrlFallback?: boolean;
   workspace: string;
   timeoutMs?: number;
   delayMs?: number;
@@ -68,6 +73,7 @@ export type ProcessStopper = (rootPid: number, tree: readonly ProcessEntry[]) =>
 interface ClosePlan {
   targetCount: number;
   remoteProcessCount: number;
+  fallbackUsed: boolean;
   targets: unknown;
 }
 
@@ -97,6 +103,7 @@ function recordFrom(value: unknown): Record<string, unknown> {
 function requestedEvidence(input: {
   appServerUrl: string;
   threadId: string;
+  allowWorkspaceUrlFallback?: boolean | undefined;
   workspace: string;
   timeoutMs?: number | undefined;
   delayMs?: number | undefined;
@@ -108,6 +115,7 @@ function requestedEvidence(input: {
     timeoutMs: input.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     delayMs: input.delayMs ?? DEFAULT_DELAY_MS,
     scope: 'explicit-thread',
+    allowWorkspaceUrlFallback: input.allowWorkspaceUrlFallback === true,
     appServerWillBeStopped: false,
   };
 }
@@ -115,16 +123,28 @@ function requestedEvidence(input: {
 function closePlanFromProcesses(processes: readonly ProcessEntry[], input: {
   appServerUrl: string;
   threadId: string;
+  allowWorkspaceUrlFallback?: boolean | undefined;
   workspace: string;
 }): ClosePlan {
-  const targets = findRemoteTuiTargets(processes, {
+  let targets = findRemoteTuiTargets(processes, {
     appServerUrl: input.appServerUrl,
     threadId: input.threadId,
     workspace: input.workspace,
   });
+  let fallbackUsed = false;
+  if (targets.remoteProcesses.length === 0 && input.allowWorkspaceUrlFallback === true) {
+    targets = findRemoteTuiTargets(processes, {
+      appServerUrl: input.appServerUrl,
+      threadId: input.threadId,
+      workspace: input.workspace,
+      allowWorkspaceUrlFallback: true,
+    });
+    fallbackUsed = targets.remoteProcesses.length > 0;
+  }
   return {
     targetCount: targets.roots.length,
     remoteProcessCount: targets.remoteProcesses.length,
+    fallbackUsed,
     targets: redactValue(summarizeProcesses(targets.roots), { workspace: input.workspace }),
   };
 }
@@ -133,6 +153,7 @@ function operationInputForOptionalValues(input: {
   operationId: string;
   appServerUrl: string;
   threadId: string;
+  allowWorkspaceUrlFallback?: boolean | undefined;
   workspace: string;
   timeoutMs?: number | undefined;
   delayMs?: number | undefined;
@@ -143,6 +164,7 @@ function operationInputForOptionalValues(input: {
     threadId: input.threadId,
     workspace: input.workspace,
   };
+  if (input.allowWorkspaceUrlFallback !== undefined) operationInput.allowWorkspaceUrlFallback = input.allowWorkspaceUrlFallback;
   if (input.timeoutMs !== undefined) operationInput.timeoutMs = input.timeoutMs;
   if (input.delayMs !== undefined) operationInput.delayMs = input.delayMs;
   return operationInput;
@@ -160,6 +182,7 @@ export function buildSessionCloseOperationArgs(input: SessionCloseOperationInput
     '--workspace',
     input.workspace,
   ];
+  if (input.allowWorkspaceUrlFallback === true) args.push('--allow-workspace-url-fallback');
   if (input.timeoutMs !== undefined) args.push('--timeout-ms', String(input.timeoutMs));
   if (input.delayMs !== undefined) args.push('--delay-ms', String(input.delayMs));
   return args;
@@ -169,6 +192,7 @@ export function parseSessionCloseOperationArgs(argv: readonly string[]): Session
   let operationId: string | undefined;
   let appServerUrl: string | undefined;
   let threadId: string | undefined;
+  let allowWorkspaceUrlFallback = false;
   let workspace: string | undefined;
   let timeoutMs: number | undefined;
   let delayMs: number | undefined;
@@ -185,6 +209,8 @@ export function parseSessionCloseOperationArgs(argv: readonly string[]): Session
     } else if (arg === '--thread-id' && value !== undefined) {
       threadId = value;
       index += 1;
+    } else if (arg === '--allow-workspace-url-fallback') {
+      allowWorkspaceUrlFallback = true;
     } else if (arg === '--workspace' && value !== undefined) {
       workspace = value;
       index += 1;
@@ -208,6 +234,7 @@ export function parseSessionCloseOperationArgs(argv: readonly string[]): Session
     operationId,
     appServerUrl: resolveAppServerUrl(appServerUrl),
     threadId,
+    allowWorkspaceUrlFallback,
     workspace: resolveWorkspaceRoot(workspace),
     timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : undefined,
     delayMs: Number.isFinite(delayMs) ? delayMs : undefined,
@@ -260,13 +287,19 @@ export function buildSessionClosePayload(
   const requested = requestedEvidence({
     appServerUrl,
     threadId: input.threadId,
+    allowWorkspaceUrlFallback: input.allowWorkspaceUrlFallback,
     workspace,
     timeoutMs,
     delayMs,
   });
 
   if (dryRun) {
-    const plan = closePlanFromProcesses(processLister(), { appServerUrl, threadId: input.threadId, workspace });
+    const plan = closePlanFromProcesses(processLister(), {
+      appServerUrl,
+      threadId: input.threadId,
+      allowWorkspaceUrlFallback: input.allowWorkspaceUrlFallback,
+      workspace,
+    });
     return {
       ok: true,
       dryRun: true,
@@ -275,13 +308,19 @@ export function buildSessionClosePayload(
       ...plan,
       notes: [
         'This only targets matching Codex remote TUI processes for this workspace, App Server URL, and explicit threadId.',
+        'When allowWorkspaceUrlFallback is true and thread matching finds nothing, it can target remotes matching workspace and App Server URL only.',
         'It does not stop the App Server or archive thread history.',
       ],
     };
   }
 
   if (!confirm) {
-    const plan = closePlanFromProcesses(processLister(), { appServerUrl, threadId: input.threadId, workspace });
+    const plan = closePlanFromProcesses(processLister(), {
+      appServerUrl,
+      threadId: input.threadId,
+      allowWorkspaceUrlFallback: input.allowWorkspaceUrlFallback,
+      workspace,
+    });
     return {
       ok: false,
       refused: true,
@@ -306,6 +345,7 @@ export function buildSessionClosePayload(
         operationId: operation.id,
         appServerUrl,
         threadId: input.threadId,
+        allowWorkspaceUrlFallback: input.allowWorkspaceUrlFallback,
         workspace,
         timeoutMs,
         delayMs,
@@ -351,6 +391,7 @@ export function stopRemoteRoots(processes: readonly ProcessEntry[], roots: reado
 export async function waitForRemoteGone(input: {
   appServerUrl: string;
   threadId: string;
+  allowWorkspaceUrlFallback?: boolean | undefined;
   workspace: string;
   timeoutMs: number;
   processLister: ProcessLister;
@@ -360,6 +401,7 @@ export async function waitForRemoteGone(input: {
     const current = findRemoteTuiTargets(input.processLister(), {
       appServerUrl: input.appServerUrl,
       threadId: input.threadId,
+      allowWorkspaceUrlFallback: input.allowWorkspaceUrlFallback,
       workspace: input.workspace,
     });
     if (current.remoteProcesses.length === 0) {
@@ -374,6 +416,7 @@ export async function waitForRemoteGone(input: {
   const remaining = findRemoteTuiTargets(input.processLister(), {
     appServerUrl: input.appServerUrl,
     threadId: input.threadId,
+    allowWorkspaceUrlFallback: input.allowWorkspaceUrlFallback,
     workspace: input.workspace,
   });
   return {
@@ -401,6 +444,7 @@ export async function runSessionCloseOperation(
   const requested = requestedEvidence({
     appServerUrl,
     threadId: input.threadId,
+    allowWorkspaceUrlFallback: input.allowWorkspaceUrlFallback,
     workspace,
     timeoutMs,
     delayMs,
@@ -411,16 +455,28 @@ export async function runSessionCloseOperation(
   try {
     if (delayMs > 0) await sleep(delayMs);
     const processes = processLister();
-    const targets = findRemoteTuiTargets(processes, { appServerUrl, threadId: input.threadId, workspace });
+    let targets = findRemoteTuiTargets(processes, { appServerUrl, threadId: input.threadId, workspace });
+    let fallbackUsed = false;
+    if (targets.remoteProcesses.length === 0 && input.allowWorkspaceUrlFallback === true) {
+      targets = findRemoteTuiTargets(processes, {
+        appServerUrl,
+        threadId: input.threadId,
+        allowWorkspaceUrlFallback: true,
+        workspace,
+      });
+      fallbackUsed = targets.remoteProcesses.length > 0;
+    }
     evidence.match = {
       targetCount: targets.roots.length,
       remoteProcessCount: targets.remoteProcesses.length,
+      fallbackUsed,
       targets: redactValue(summarizeProcesses(targets.roots), { workspace }),
     };
     evidence.stop = redactValue(stopRemoteRoots(processes, targets.roots, processStopper), { workspace });
     const stopped = await waitForRemoteGone({
       appServerUrl,
       threadId: input.threadId,
+      allowWorkspaceUrlFallback: input.allowWorkspaceUrlFallback,
       workspace,
       timeoutMs,
       processLister,
