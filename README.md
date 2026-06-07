@@ -1,9 +1,16 @@
 # Codex Agent Session Manager
 
+[![npm version](https://img.shields.io/npm/v/codex-agent-session-manager.svg)](https://www.npmjs.com/package/codex-agent-session-manager)
+[![npm alpha](https://img.shields.io/npm/v/codex-agent-session-manager/alpha.svg?label=alpha)](https://www.npmjs.com/package/codex-agent-session-manager)
+[![GitHub release](https://img.shields.io/github/v/release/Apethor/codex-agent-session-manager?include_prereleases)](https://github.com/Apethor/codex-agent-session-manager/releases)
+
 Agent-facing Codex App Server session manager with an MCP validation harness.
 
 The goal is to expose selected Codex App Server session operations as safe MCP
 tools that a Codex agent can call from inside its own workflow.
+
+This project is currently in alpha. It is intended for Codex/App Server
+workflows that need MCP refresh and session-management automation.
 
 Early scope:
 

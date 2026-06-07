@@ -1,9 +1,26 @@
 {
   "name": "codex-agent-session-manager",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Agent-facing Codex App Server session manager with an MCP validation harness.",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Apethor/codex-agent-session-manager.git"
+  },
+  "homepage": "https://github.com/Apethor/codex-agent-session-manager#readme",
+  "bugs": {
+    "url": "https://github.com/Apethor/codex-agent-session-manager/issues"
+  },
+  "keywords": [
+    "agent-tools",
+    "app-server",
+    "codex",
+    "codex-cli",
+    "mcp",
+    "model-context-protocol",
+    "session-manager"
+  ],
   "bin": {
     "codex-agent-session-manager": "dist/cli.js"
   },
