@@ -27,23 +27,23 @@ The smoke must prove:
 
 - MCP initialize succeeds.
 - `tools/list` includes:
-  - `codex_session_manager_probe`
-  - `codex_threads_list`
-  - `codex_mcp_status_list`
-  - `codex_app_server_state_read`
-  - `codex_thread_context`
-  - `codex_operation_read`
-  - `codex_operation_wait`
-  - `codex_mcp_add_npm`
-  - `codex_mcp_reload`
-  - `codex_mcp_refresh`
   - `codex_app_server_start`
+  - `codex_app_server_state_read`
   - `codex_app_server_status`
   - `codex_app_server_stop`
-  - `codex_session_continue`
+  - `codex_mcp_add_npm`
+  - `codex_mcp_refresh`
+  - `codex_mcp_reload`
+  - `codex_mcp_status_list`
+  - `codex_operation_read`
+  - `codex_operation_wait`
   - `codex_session_close`
+  - `codex_session_continue`
   - `codex_session_launch`
+  - `codex_session_manager_probe`
   - `codex_session_replace`
+  - `codex_thread_context`
+  - `codex_threads_list`
 - `tools/call` can call `codex_session_manager_probe`.
 - `resources/list` includes `codex-session-manager://operations`.
 - CLI help lists the public App Server, MCP refresh, and session commands.
