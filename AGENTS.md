@@ -32,6 +32,7 @@ npm run build
 npm run security:smoke
 npm run security:scan
 npm run audit:prod
+npm run remote -- --dry-run --no-resume
 ```
 
 ## Documentation Map

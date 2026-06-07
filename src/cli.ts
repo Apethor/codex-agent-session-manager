@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { startStdioServer } from './mcp-server.js';
+import { remoteUsage, runRemoteCommand } from './remote.js';
 import { runMcpReloadOperationFromArgv } from './tools/reload.js';
 import { runSessionCloseOperationFromArgv } from './tools/session-close.js';
 import { runSessionContinueOperationFromArgv } from './tools/session-continue.js';
@@ -12,11 +13,13 @@ function printHelp(): void {
 
 Usage:
   codex-agent-session-manager serve
+  codex-agent-session-manager remote [options]
   codex-agent-session-manager --version
   codex-agent-session-manager --help
 
 Commands:
   serve    Start the MCP stdio server.
+  remote   Start/reuse a workspace App Server and launch Codex remote.
 `);
 }
 
@@ -35,6 +38,16 @@ async function main(argv: string[]): Promise<void> {
 
   if (command === 'serve' || command === 'mcp') {
     await startStdioServer();
+    return;
+  }
+
+  if (command === 'remote') {
+    process.exitCode = await runRemoteCommand(argv.slice(1));
+    return;
+  }
+
+  if (command === 'remote-help') {
+    process.stdout.write(remoteUsage());
     return;
   }
 

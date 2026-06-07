@@ -31,6 +31,8 @@ Current foundation:
 - Durable operation resource: codex-session-manager://operations.
 - Runtime operation state: .codex-agent-session-manager/state/operations.json.
 - Workspace cwd guardrails reject lexical and symlink/junction escapes.
+- Repo-local remote launcher: npm run remote. It uses primary
+  .codex-agent-session-manager state and ignores legacy hot-reloader state.
 - Security scripts: security:smoke, security:scan, audit:prod.
 - Smoke: raw MCP JSON-RPC initialize, tools/list, tools/call, resources/list.
 
@@ -50,12 +52,15 @@ Validation already expected:
 - npm run security:smoke
 - npm run security:scan
 - npm run audit:prod
+- npm run remote -- --dry-run --no-resume
 
 Next likely work:
 1. Continue Phase 6 probes. Windows hidden stdio launcher remains explicitly
    probe-gated.
-2. Keep tool schemas explicit and do not expose raw arbitrary App Server RPC.
-3. Do not assume broad session cleanup is safe without explicit thread/process
+2. Ask the operator to run real `npm run remote` and `/mcp` in PowerShell when
+   visual popup behavior needs validation.
+3. Keep tool schemas explicit and do not expose raw arbitrary App Server RPC.
+4. Do not assume broad session cleanup is safe without explicit thread/process
    ownership evidence.
 
 Do not:

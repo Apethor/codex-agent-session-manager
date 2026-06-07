@@ -41,6 +41,8 @@ Implemented:
 - Runtime operation state under
   `.codex-agent-session-manager/state/operations.json`.
 - Workspace cwd guardrails for tools that accept `cwd`.
+- Repo-local remote launcher through `npm run remote`; it uses primary
+  `.codex-agent-session-manager` state and ignores legacy hot-reloader state.
 - Security scripts `security:smoke`, `security:scan`, and `audit:prod`.
 - Raw JSON-RPC MCP smoke in `scripts/smoke.ts`.
 - Unit test in `test/probe.test.ts`.
@@ -71,6 +73,7 @@ node dist/cli.js --version
 npm run security:smoke
 npm run security:scan
 npm run audit:prod
+npm run remote -- --dry-run --no-resume
 git diff --check
 ```
 
@@ -301,6 +304,26 @@ npm run security:scan: pass, scannedFiles: 53
 npm run audit:prod: pass, found 0 vulnerabilities
 ```
 
+## Latest Phase 6 Remote Evidence
+
+The repo-local traditional remote launcher was added:
+
+```text
+npm run remote -- --dry-run --no-resume: pass
+source: port-auto when only legacy state exists
+state file: <workspace>/.codex-agent-session-manager/state/app-server.json
+tests: parse args, ignore legacy state, prefer primary state, redacted dry-run,
+fake no-resume state write
+```
+
+Real popup behavior still needs an operator-visible Windows probe:
+
+```powershell
+cd <workspace>
+npm run remote
+# then run /mcp inside the opened Codex session
+```
+
 ## Bootstrap Rule
 
 Until Phase 6 lifecycle and Windows launcher probes are promoted, this session
@@ -316,7 +339,9 @@ available, and report whether they are callable.
 1. Inspect the scaffold and current git status.
 2. Continue Phase 6 probes. Windows hidden stdio launcher remains explicitly
    probe-gated by the operator decision.
-3. Keep all future session-manager tools small, typed, and explicitly guarded.
+3. Use real `npm run remote` plus `/mcp` only when the operator can observe
+   whether cmd/conhost popups appear.
+4. Keep all future session-manager tools small, typed, and explicitly guarded.
 
 ## Do Not Do
 

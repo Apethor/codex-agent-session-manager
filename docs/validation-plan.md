@@ -12,6 +12,7 @@ npm run build
 npm run security:smoke
 npm run security:scan
 npm run audit:prod
+npm run remote -- --dry-run --no-resume
 ```
 
 The smoke must prove:
@@ -80,6 +81,26 @@ Current read-only checks:
 - scan tracked files for personal paths, workspace paths, UUID-style thread/app
   ids, common credentials, and unsafe App Server URL shapes;
 - run production dependency audit.
+- dry-run the repo-local remote launcher and confirm it uses primary
+  `.codex-agent-session-manager` state, not legacy hot-reloader state.
+
+## Windows Popup Probe
+
+The operator should run this in a normal PowerShell window:
+
+```powershell
+cd <workspace>
+npm run remote
+```
+
+Then run `/mcp` in the opened Codex session.
+
+Record separately:
+
+- whether `npm run remote` itself opens extra cmd/conhost windows;
+- whether `/mcp` opens extra cmd/conhost windows;
+- whether `.codex/config.toml` is using the hidden stdio launcher or direct
+  `node` for the MCP server.
 
 ## Callable Catalog Proof Matrix
 

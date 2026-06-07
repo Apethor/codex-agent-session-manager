@@ -57,6 +57,7 @@ npm run build
 npm run security:smoke
 npm run security:scan
 npm run audit:prod
+npm run remote -- --dry-run --no-resume
 ```
 
 Start the MCP server:
@@ -64,6 +65,18 @@ Start the MCP server:
 ```powershell
 npm run serve
 ```
+
+Start a Codex remote session from this repo's own launcher:
+
+```powershell
+npm run remote -- --dry-run --no-resume
+npm run remote
+```
+
+The `remote` command reads and writes only
+`.codex-agent-session-manager/state/app-server.json`; it intentionally ignores
+legacy hot-reloader launcher state so Windows popup tests can compare the new
+flow against the old launcher.
 
 ## Documentation
 

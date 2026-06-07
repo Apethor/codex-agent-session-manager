@@ -278,8 +278,9 @@ Port only the parts that survive the new architecture:
 
 Do not copy the old code shape blindly.
 
-Status: cwd guardrails, read-only App Server state, and security scan patterns
-promoted; Windows launcher still probe-gated.
+Status: cwd guardrails, read-only App Server state, security scan patterns, and
+first-cut repo-local `remote` promoted; Windows hidden launcher behavior still
+probe-gated.
 
 Implemented:
 
@@ -300,6 +301,12 @@ Implemented:
 - The security scan checks tracked files for personal paths, local workspace
   paths, concrete UUID-style thread/app ids, common credential shapes, and App
   Server URLs with credentials/path/query/fragment, while redacting findings.
+- `codex-agent-session-manager remote` starts or reuses a workspace App Server
+  using primary `.codex-agent-session-manager` state only, then launches Codex
+  with `--remote`.
+- The first-cut remote launcher intentionally does not read legacy
+  `.codex-mcp-hot-reloader` state, so Windows popup probes can compare the new
+  flow against the old launcher.
 
 Validation:
 
@@ -317,7 +324,11 @@ Validation:
 - `npm run security:smoke`
 - `npm run security:scan`
 - `npm run audit:prod`
+- Unit tests cover remote arg parsing, ignoring legacy state, preferring primary
+  state, redacted dry-run output, and fake `--no-resume` App Server start state.
+- `npm run remote -- --dry-run --no-resume`
 
 Still gated by Decision 3 probes:
 
 - Windows hidden stdio launcher logic.
+- Visual Windows popup behavior for real `npm run remote` / `/mcp` flows.

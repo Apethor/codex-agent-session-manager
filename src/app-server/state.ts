@@ -8,7 +8,7 @@ export type AppServerStateSource = 'primary' | 'legacy';
 
 export interface AppServerState {
   url?: string;
-  pid?: number;
+  pid?: number | null;
   owned?: boolean;
   source?: string;
   reusedServer?: boolean;

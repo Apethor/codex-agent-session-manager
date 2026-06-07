@@ -20,6 +20,7 @@
     "build": "npm run clean && tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
     "serve": "node --import tsx src/cli.ts serve",
+    "remote": "node --import tsx src/cli.ts remote",
     "smoke": "node --import tsx scripts/smoke.ts",
     "security:scan": "node --import tsx scripts/security-scan.ts",
     "security:smoke": "node --import tsx scripts/smoke-security-scan.ts",
