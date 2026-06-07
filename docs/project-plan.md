@@ -278,4 +278,26 @@ Port only the parts that survive the new architecture:
 
 Do not copy the old code shape blindly.
 
-Status: ongoing reference only.
+Status: cwd guardrails promoted; Windows launcher still probe-gated.
+
+Implemented:
+
+- `resolveWorkspaceCwd` constrains tool-provided `cwd` values to the current
+  workspace.
+- The guard rejects lexical escapes such as `..` and absolute outside paths.
+- The guard resolves the deepest existing ancestor so symlink/junction escapes
+  are rejected even when the requested final directory does not exist.
+- `codex_threads_list` and `codex_thread_context` use this guard before
+  querying App Server thread state.
+
+Validation:
+
+- Unit tests cover default/nested cwd, missing final directories, lexical
+  escapes, and symlink/junction escapes when supported by the platform.
+- A fresh proof turn called `codex_thread_context` with `cwd: ".."` and
+  received the expected guardrail failure:
+  `Workspace cwd must stay inside the current workspace.`
+
+Still gated by Decision 3 probes:
+
+- Windows hidden stdio launcher logic.

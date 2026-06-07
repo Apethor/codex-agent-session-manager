@@ -29,6 +29,7 @@ Current foundation:
 - Remote TUI replacement tool: codex_session_replace.
 - Durable operation resource: codex-session-manager://operations.
 - Runtime operation state: .codex-agent-session-manager/state/operations.json.
+- Workspace cwd guardrails reject lexical and symlink/junction escapes.
 - Smoke: raw MCP JSON-RPC initialize, tools/list, tools/call, resources/list.
 
 Important docs:
@@ -46,8 +47,8 @@ Validation already expected:
 - npm run build
 
 Next likely work:
-1. Continue Phase 6 probes, starting with Windows hidden stdio launcher and
-   lifecycle state.
+1. Continue Phase 6 probes. Windows hidden stdio launcher remains explicitly
+   probe-gated.
 2. Keep tool schemas explicit and do not expose raw arbitrary App Server RPC.
 3. Do not assume broad session cleanup is safe without explicit thread/process
    ownership evidence.

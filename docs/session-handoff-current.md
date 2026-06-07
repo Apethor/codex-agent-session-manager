@@ -39,6 +39,7 @@ Implemented:
 - Resource `codex-session-manager://operations`.
 - Runtime operation state under
   `.codex-agent-session-manager/state/operations.json`.
+- Workspace cwd guardrails for tools that accept `cwd`.
 - Raw JSON-RPC MCP smoke in `scripts/smoke.ts`.
 - Unit test in `test/probe.test.ts`.
 - Initial docs and ADRs.
@@ -98,6 +99,9 @@ git diff --check
   first cut.
 - Keep session replacement as an explicit-thread composition of close plus
   launch. `codex_session_replace` does not start App Server in its first cut.
+- Keep tool-provided `cwd` values scoped to the current workspace. Lexical
+  escapes, symlink escapes, and junction escapes must be rejected before thread
+  discovery queries App Server.
 
 ## Latest Phase 3 Evidence
 
@@ -251,6 +255,18 @@ startsAppServer: false
 prompt text omitted from preview/evidence: true
 ```
 
+## Latest Phase 6 Cwd Guardrail Evidence
+
+Workspace cwd guardrails were validated locally and by fresh-turn callable
+proof:
+
+```text
+callable tool: codex_thread_context
+input cwd: ..
+tool status: failed
+expected error: Workspace cwd must stay inside the current workspace.
+```
+
 ## Bootstrap Rule
 
 Until Phase 6 lifecycle and Windows launcher probes are promoted, this session
@@ -264,8 +280,8 @@ available, and report whether they are callable.
 ## Next Work
 
 1. Inspect the scaffold and current git status.
-2. Continue Phase 6 probes, starting with Windows hidden stdio launcher and
-   lifecycle state.
+2. Continue Phase 6 probes. Windows hidden stdio launcher remains explicitly
+   probe-gated by the operator decision.
 3. Keep all future session-manager tools small, typed, and explicitly guarded.
 
 ## Do Not Do

@@ -5,6 +5,7 @@ import { connectAppServerClient } from '../app-server/client.js';
 import { resolveAppServerUrl } from '../app-server/config.js';
 import type { ThreadListEntry, ThreadReadResult } from '../app-server/protocol.js';
 import { redactSensitiveText, redactValue } from '../security/redaction.js';
+import { resolveWorkspaceCwd } from '../security/workspace.js';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_STORED_LIMIT = 10;
@@ -264,7 +265,7 @@ export function selectThreadContextRecommendation(
 
 export async function buildThreadContextPayload(input: ThreadContextInput): Promise<Record<string, unknown>> {
   const url = resolveAppServerUrl(input.appServerUrl);
-  const cwd = resolve(input.cwd ?? process.cwd());
+  const cwd = resolveWorkspaceCwd(input.cwd);
   const marker = input.marker && input.marker.length > 0 ? input.marker : undefined;
   const includeStored = input.includeStored ?? false;
   const client = await connectAppServerClient({ url, requestTimeoutMs: input.timeoutMs ?? DEFAULT_TIMEOUT_MS });

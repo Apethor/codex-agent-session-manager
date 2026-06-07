@@ -87,6 +87,9 @@ Current bootstrap compatibility:
   and accepts `.codex-mcp-hot-reloader/state/app-server.json` only as a
   temporary compatibility path while the old repo still controls early
   dogfood sessions.
+- Tool inputs that accept a `cwd` resolve it under the current workspace and
+  reject lexical escapes, symlink escapes, and junction escapes. This keeps
+  thread discovery scoped to the workspace that loaded the MCP server.
 
 ## Initial MCP Surface
 
@@ -179,6 +182,16 @@ Phase 5 replacement composes cleanup and launch:
 - Its first callable proof ran in `dryRun` mode and returned `ok: true`,
   `confirmRequired: true`, `startsAppServer: false`, and close target counts
   without stopping or launching any process.
+
+Phase 6 starts by hardening workspace scope:
+
+- `resolveWorkspaceCwd` validates read-only thread discovery `cwd` inputs
+  before they reach App Server `thread/list` or loaded-thread matching.
+- Unit tests cover default cwd, nested cwd, missing final directories,
+  lexical escapes, and symlink/junction escapes when supported by the platform.
+- The first callable proof called `codex_thread_context` with `cwd: ".."` and
+  observed the expected failure:
+  `Workspace cwd must stay inside the current workspace.`
 
 ## Boundaries
 

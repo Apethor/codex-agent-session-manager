@@ -38,6 +38,8 @@ Current read-only checks:
 - initialize App Server connection before any other request;
 - list loaded threads;
 - list stored threads scoped by cwd;
+- reject tool-provided cwd values that escape the current workspace lexically
+  or through symlink/junction ancestors;
 - read MCP server status for a target thread.
 - recommend a target thread by marker/cwd/status evidence;
 - read and wait for operation records.
