@@ -20,6 +20,7 @@ Current foundation:
 - MCP stdio server using @modelcontextprotocol/sdk.
 - Zod-backed probe tool: codex_session_manager_probe.
 - App Server read-only tools: codex_threads_list and codex_mcp_status_list.
+- App Server state read tool: codex_app_server_state_read.
 - Thread context tool: codex_thread_context.
 - Operation tools: codex_operation_read and codex_operation_wait.
 - Reload tool: codex_mcp_reload.

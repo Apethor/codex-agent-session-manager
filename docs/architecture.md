@@ -98,6 +98,7 @@ The current MCP surface exposes:
 - `codex_session_manager_probe`
 - `codex_threads_list`
 - `codex_mcp_status_list`
+- `codex_app_server_state_read`
 - `codex_thread_context`
 - `codex_operation_read`
 - `codex_operation_wait`
@@ -192,6 +193,17 @@ Phase 6 starts by hardening workspace scope:
 - The first callable proof called `codex_thread_context` with `cwd: ".."` and
   observed the expected failure:
   `Workspace cwd must stay inside the current workspace.`
+
+Phase 6 also adds read-only launcher state visibility:
+
+- `codex_app_server_state_read` reports the current workspace App Server state
+  sources without starting, stopping, or probing any process.
+- Resolution evidence follows the same order used by session tools:
+  environment, primary `.codex-agent-session-manager` state, then legacy
+  `.codex-mcp-hot-reloader` state for bootstrap compatibility.
+- Its first callable proof returned `resolved.source: legacy-state`,
+  `resolved.url: ws://127.0.0.1:57798`, primary state absent, legacy state
+  present, and workspace paths redacted as `<workspace>`.
 
 ## Boundaries
 

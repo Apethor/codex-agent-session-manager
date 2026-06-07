@@ -74,6 +74,7 @@ try {
     'codex_session_manager_probe',
     'codex_threads_list',
     'codex_mcp_status_list',
+    'codex_app_server_state_read',
     'codex_thread_context',
     'codex_operation_read',
     'codex_operation_wait',

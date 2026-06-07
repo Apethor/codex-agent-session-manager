@@ -278,7 +278,8 @@ Port only the parts that survive the new architecture:
 
 Do not copy the old code shape blindly.
 
-Status: cwd guardrails promoted; Windows launcher still probe-gated.
+Status: cwd guardrails and read-only App Server state promoted; Windows
+launcher still probe-gated.
 
 Implemented:
 
@@ -289,6 +290,11 @@ Implemented:
   are rejected even when the requested final directory does not exist.
 - `codex_threads_list` and `codex_thread_context` use this guard before
   querying App Server thread state.
+- `codex_app_server_state_read` exposes redacted launcher state diagnostics for
+  the current workspace.
+- App Server URL resolution state is now centralized in typed state helpers and
+  still supports legacy `.codex-mcp-hot-reloader` state for bootstrap
+  compatibility.
 
 Validation:
 
@@ -297,6 +303,12 @@ Validation:
 - A fresh proof turn called `codex_thread_context` with `cwd: ".."` and
   received the expected guardrail failure:
   `Workspace cwd must stay inside the current workspace.`
+- Unit tests cover primary/legacy state reads, corrupt state files, write/read
+  behavior, env-over-state precedence, legacy omission, and workspace path
+  redaction.
+- A fresh proof turn called `codex_app_server_state_read`; it returned
+  `resolved.source: legacy-state`, `resolved.url: ws://127.0.0.1:57798`,
+  primary state absent, legacy state present, and workspace paths redacted.
 
 Still gated by Decision 3 probes:
 

@@ -1,25 +1,10 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-
 import { validateAppServerUrl } from '../security/url.js';
-
-const WORKSPACE_STATE_DIR_NAMES = ['.codex-agent-session-manager', '.codex-mcp-hot-reloader'] as const;
+import { readWorkspaceAppServerStates } from './state.js';
 
 function readWorkspaceStateUrl(workspace: string): string | null {
-  const workspaceRoot = resolve(workspace);
-
-  for (const stateDirName of WORKSPACE_STATE_DIR_NAMES) {
-    const stateFile = join(workspaceRoot, stateDirName, 'state', 'app-server.json');
-    if (!existsSync(stateFile)) continue;
-
-    try {
-      const parsed = JSON.parse(readFileSync(stateFile, 'utf8')) as unknown;
-      if (!parsed || typeof parsed !== 'object') continue;
-      const url = (parsed as Record<string, unknown>).url;
-      if (typeof url === 'string' && url.length > 0) return url;
-    } catch {
-      continue;
-    }
+  for (const stateRead of readWorkspaceAppServerStates(workspace)) {
+    const url = stateRead.state?.url;
+    if (typeof url === 'string' && url.length > 0) return url;
   }
 
   return null;

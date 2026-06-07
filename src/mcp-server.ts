@@ -7,6 +7,7 @@ import {
   mcpStatusListInputSchema,
   threadsListInputSchema,
 } from './tools/app-server.js';
+import { appServerStateReadInputSchema, buildAppServerStateReadPayload } from './tools/app-server-state.js';
 import {
   buildOperationReadPayload,
   buildOperationWaitPayload,
@@ -104,6 +105,28 @@ export function createMcpServer(): McpServer {
     },
     async (input) => {
       const payload = await buildMcpStatusListPayload(input);
+      return {
+        content: [{ type: 'text', text: jsonText(payload) }],
+        structuredContent: payload,
+      };
+    },
+  );
+
+  server.registerTool(
+    'codex_app_server_state_read',
+    {
+      title: 'Read App Server Launcher State',
+      description: 'Read redacted workspace App Server launcher state and report the URL source that session tools would use.',
+      inputSchema: appServerStateReadInputSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (input) => {
+      const payload = buildAppServerStateReadPayload(input);
       return {
         content: [{ type: 'text', text: jsonText(payload) }],
         structuredContent: payload,

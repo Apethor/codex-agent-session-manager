@@ -29,6 +29,7 @@ Implemented:
 - CLI entry in `src/cli.ts`.
 - Probe tool `codex_session_manager_probe`.
 - Read-only tools `codex_threads_list` and `codex_mcp_status_list`.
+- Read-only App Server launcher state tool `codex_app_server_state_read`.
 - Read-only thread recommendation tool `codex_thread_context`.
 - Operation tools `codex_operation_read` and `codex_operation_wait`.
 - Reload tool `codex_mcp_reload`.
@@ -102,6 +103,9 @@ git diff --check
 - Keep tool-provided `cwd` values scoped to the current workspace. Lexical
   escapes, symlink escapes, and junction escapes must be rejected before thread
   discovery queries App Server.
+- Keep App Server lifecycle state visibility read-only until start/stop probes
+  are promoted. `codex_app_server_state_read` reports resolution source and
+  redacted state; it does not prove process liveness.
 
 ## Latest Phase 3 Evidence
 
@@ -265,6 +269,22 @@ callable tool: codex_thread_context
 input cwd: ..
 tool status: failed
 expected error: Workspace cwd must stay inside the current workspace.
+```
+
+## Latest Phase 6 App Server State Evidence
+
+`codex_app_server_state_read` was validated locally and by fresh-turn callable
+proof:
+
+```text
+callable: true
+ok: true
+resolved.source: legacy-state
+resolved.url: ws://127.0.0.1:57798
+states count: 2
+primary exists: false
+legacy exists: true
+raw workspace path omitted/redacted: true
 ```
 
 ## Bootstrap Rule

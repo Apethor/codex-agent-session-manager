@@ -18,6 +18,7 @@ The smoke must prove:
   - `codex_session_manager_probe`
   - `codex_threads_list`
   - `codex_mcp_status_list`
+  - `codex_app_server_state_read`
   - `codex_thread_context`
   - `codex_operation_read`
   - `codex_operation_wait`
@@ -40,6 +41,10 @@ Current read-only checks:
 - list stored threads scoped by cwd;
 - reject tool-provided cwd values that escape the current workspace lexically
   or through symlink/junction ancestors;
+- read primary and legacy App Server launcher state without leaking raw
+  workspace paths;
+- report App Server URL resolution source with environment taking precedence
+  over primary state and primary state taking precedence over legacy state;
 - read MCP server status for a target thread.
 - recommend a target thread by marker/cwd/status evidence;
 - read and wait for operation records.
