@@ -101,11 +101,11 @@ The current MCP surface exposes:
 - `codex_mcp_reload`
 - `codex_session_continue`
 - `codex_session_close`
+- `codex_session_launch`
 - `codex-session-manager://operations`
 
 Planned next tools:
 
-- `codex_session_launch`
 - `codex_session_replace`
 
 ## Callable Refresh Evidence
@@ -158,6 +158,17 @@ Phase 5 starts with safe remote TUI cleanup:
 - It does not stop App Server or archive thread history.
 - Its first callable proof ran in `dryRun` mode and returned
   `appServerWillBeStopped: false`.
+
+Phase 5 launch is intentionally scoped:
+
+- `codex_session_launch` builds or schedules a Codex remote TUI launch against
+  an already-known loopback App Server URL.
+- It does not start App Server in this first cut; App Server lifecycle belongs
+  to the later port/probe work.
+- It defaults to `dryRun: true`, requires `confirm: true` for real launch, and
+  omits initial prompt text from previews and operation evidence.
+- Its first callable proof ran in `dryRun` mode and confirmed
+  `startsAppServer: false` with prompt text replaced by `<prompt>`.
 
 ## Boundaries
 

@@ -18,6 +18,7 @@ import { buildProbePayload, probeInputSchema } from './tools/probe.js';
 import { buildMcpReloadPayload, mcpReloadInputSchema } from './tools/reload.js';
 import { buildSessionClosePayload, sessionCloseInputSchema } from './tools/session-close.js';
 import { buildSessionContinuePayload, sessionContinueInputSchema } from './tools/session-continue.js';
+import { buildSessionLaunchPayload, sessionLaunchInputSchema } from './tools/session-launch.js';
 import { buildThreadContextPayload, threadContextInputSchema } from './tools/thread-context.js';
 import { packageName, packageVersion } from './version.js';
 
@@ -234,6 +235,28 @@ export function createMcpServer(): McpServer {
     },
     async (input) => {
       const payload = buildSessionClosePayload(input);
+      return {
+        content: [{ type: 'text', text: jsonText(payload) }],
+        structuredContent: payload,
+      };
+    },
+  );
+
+  server.registerTool(
+    'codex_session_launch',
+    {
+      title: 'Launch Codex Remote Session',
+      description: 'Build or schedule a Codex remote TUI launch against an existing loopback App Server. Does not start App Server in this first cut.',
+      inputSchema: sessionLaunchInputSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (input) => {
+      const payload = buildSessionLaunchPayload(input);
       return {
         content: [{ type: 'text', text: jsonText(payload) }],
         structuredContent: payload,

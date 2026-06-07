@@ -18,7 +18,8 @@ C:\Users\Guilherme\Documents\Claude\codex-agent-session-manager
 Phases 1, 2, and 3 are implemented and validated. Phase 4 now has durable
 operation state, `codex_mcp_reload`, and `codex_session_continue` with
 fresh-turn callable proof. Phase 5 has started with local `codex_session_close`
-implementation; check `git log` and `git status` for the latest commit state.
+and `codex_session_launch` implementation; check `git log` and `git status`
+for the latest commit state.
 
 Implemented:
 
@@ -34,6 +35,7 @@ Implemented:
 - Reload tool `codex_mcp_reload`.
 - Continuation tool `codex_session_continue`.
 - Remote TUI cleanup tool `codex_session_close`.
+- Remote TUI launch tool `codex_session_launch`.
 - Resource `codex-session-manager://operations`.
 - Runtime operation state under
   `.codex-agent-session-manager/state/operations.json`.
@@ -91,6 +93,9 @@ git diff --check
 - Keep session cleanup safe-first: `codex_session_close` only targets explicit
   `threadId`, current workspace, and selected App Server URL; it defaults to
   `dryRun:true` and requires `confirm:true` for real cleanup.
+- Keep session launch scoped to an already-known App Server URL until lifecycle
+  probes are promoted. `codex_session_launch` does not start App Server in its
+  first cut.
 
 ## Latest Phase 3 Evidence
 
@@ -212,6 +217,22 @@ remoteProcessCount: 0
 appServerWillBeStopped: false
 ```
 
+## Latest Phase 5 Launch Evidence
+
+`codex_session_launch` was validated locally and by fresh-turn callable dry-run
+proof:
+
+```text
+callable: true
+ok: true
+dryRun: true
+confirmRequired: true
+mode: session
+promptProvided: true
+startsAppServer: false
+prompt text omitted from preview/evidence: true
+```
+
 ## Bootstrap Rule
 
 Until the next session-management tools exist, this session is still a dogfood
@@ -225,7 +246,7 @@ available, and report whether they are callable.
 ## Next Work
 
 1. Inspect the scaffold and current git status.
-2. Continue Phase 5 with `codex_session_launch` and `codex_session_replace`.
+2. Continue Phase 5 with `codex_session_replace`.
 3. Keep all future session-manager tools small, typed, and explicitly guarded.
 
 ## Do Not Do

@@ -24,6 +24,7 @@ The smoke must prove:
   - `codex_mcp_reload`
   - `codex_session_continue`
   - `codex_session_close`
+  - `codex_session_launch`
 - `tools/call` can call `codex_session_manager_probe`.
 - `resources/list` includes `codex-session-manager://operations`.
 
@@ -54,6 +55,10 @@ Current read-only checks:
   `dryRun` mode;
 - refuse real remote TUI cleanup unless `dryRun:false` and `confirm:true`;
 - exclude App Server processes from remote TUI cleanup targets.
+- preview Codex remote TUI launch without prompt text in `dryRun` mode;
+- refuse real remote TUI launch unless `dryRun:false` and `confirm:true`;
+- keep App Server lifecycle start separate from `codex_session_launch` until
+  lifecycle probes are promoted.
 
 ## Callable Catalog Proof Matrix
 

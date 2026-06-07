@@ -1,6 +1,6 @@
 # Project Plan
 
-Status: Phase 5 close started
+Status: Phase 5 close and launch implemented
 
 ## Bootstrap Workflow
 
@@ -206,7 +206,7 @@ Exit criteria:
 - Replacement fallback can validate a callable MCP change when continuation is
   stale.
 
-Status: close implemented and callable; launch and replace not started.
+Status: close and launch implemented/callable; replace not started.
 
 Implemented:
 
@@ -218,6 +218,14 @@ Implemented:
   call can return before a matching TUI is closed.
 - Matching is scoped to current workspace, App Server URL, and thread id; App
   Server processes are excluded.
+- `codex_session_launch` builds a Codex remote TUI launch against an existing
+  loopback App Server URL.
+- Launch defaults to `dryRun: true`; real launch requires `dryRun: false` and
+  `confirm: true`.
+- Launch can start fresh, resume a specific `threadId`, resume last, or open
+  picker mode. Supplying `threadId` implies session mode.
+- Launch does not start App Server in this cut; that is deferred to lifecycle
+  probes/porting.
 
 Validation:
 
@@ -229,10 +237,17 @@ Validation:
 - A fresh proof turn called `codex_session_close` in `dryRun` mode; it returned
   `ok: true`, `confirmRequired: true`, `targetCount: 0`, and
   `appServerWillBeStopped: false`.
+- Unit tests cover launch dry-run preview, mode/thread validation, confirm
+  refusal, durable scheduling, child runner completion through a fake executor,
+  and argv without prompt text.
+- App Server status listed `codex_session_launch`.
+- A fresh proof turn called `codex_session_launch` in `dryRun` mode; it
+  returned `ok: true`, `confirmRequired: true`, `mode: session`,
+  `startsAppServer: false`, and a `<prompt>` placeholder instead of prompt
+  text.
 
 Remaining in Phase 5:
 
-- `codex_session_launch`;
 - `codex_session_replace`;
 
 ## Phase 6: Port From Experimental Repo
