@@ -323,6 +323,10 @@ Implemented:
 - `codex-agent-session-manager remote` starts or reuses a workspace App Server
   using primary `.codex-agent-session-manager` state only, then launches Codex
   with `--remote`.
+- `remote --resume <thread-id>` is accepted as the Codex-like alias for
+  `--session-id <thread-id>`, and default TUI launch includes
+  `--dangerously-bypass-approvals-and-sandbox` unless `--no-bypass-sandbox` is
+  passed.
 - The first-cut remote launcher intentionally does not read legacy
   `.codex-mcp-hot-reloader` state, so Windows popup probes can compare the new
   flow against the old launcher.

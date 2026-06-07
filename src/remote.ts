@@ -78,6 +78,7 @@ Options:
   --port <port|auto>          App Server port when --url is absent. Default: primary state, then auto.
   --workspace <path>          Workspace for Codex. Defaults to current directory.
   --session-id <thread-id>    Resume a specific thread id.
+  --resume <thread-id>        Alias for --session-id.
   --resume-last               Resume the most recent thread.
   --pick                      Open Codex's resume picker.
   --no-resume                 Start/reuse App Server and exit before launching Codex TUI.
@@ -106,6 +107,12 @@ export function parseRemoteArgs(argv: readonly string[]): RemoteOptions {
       index += 1;
       return next;
     };
+    const readSessionId = (): void => {
+      if (options.sessionId !== undefined) {
+        throw new Error('Choose only one of --session-id or --resume.');
+      }
+      options.sessionId = readValue();
+    };
 
     switch (name) {
       case '--url':
@@ -121,7 +128,8 @@ export function parseRemoteArgs(argv: readonly string[]): RemoteOptions {
         options.workspace = readValue();
         break;
       case '--session-id':
-        options.sessionId = readValue();
+      case '--resume':
+        readSessionId();
         break;
       case '--resume-last':
         options.resumeLast = true;
@@ -152,7 +160,7 @@ export function parseRemoteArgs(argv: readonly string[]): RemoteOptions {
 
   const selectedModes = [options.sessionId !== undefined, options.resumeLast === true, options.pick === true].filter(Boolean).length;
   if (selectedModes > 1) {
-    throw new Error('Choose only one of --session-id, --resume-last, or --pick.');
+    throw new Error('Choose only one of --resume/--session-id, --resume-last, or --pick.');
   }
   return options;
 }

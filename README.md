@@ -166,12 +166,20 @@ Start a Codex remote session from this repo's own launcher:
 ```powershell
 npm run remote -- --dry-run --no-resume
 npm run remote
+npm run remote -- --resume <thread-id>
 ```
 
 The `remote` command reads and writes only
 `.codex-agent-session-manager/state/app-server.json`; it intentionally ignores
 legacy hot-reloader launcher state so Windows popup tests can compare the new
 flow against the old launcher.
+
+In projects initialized with this package, use the generated script name:
+`npm run codex:remote -- --resume <thread-id>`. `--resume <thread-id>` is an
+alias for `--session-id <thread-id>` and launches Codex as
+`codex resume <thread-id> --remote ...`. The visible Codex TUI passes
+`--dangerously-bypass-approvals-and-sandbox` by default for trusted local
+development; add `--no-bypass-sandbox` to omit it.
 
 On Windows, `remote` starts the managed App Server through a generated
 `.codex-agent-session-manager/windows-hidden-stdio-launcher.exe` when the Codex

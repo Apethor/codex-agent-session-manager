@@ -259,6 +259,10 @@ Phase 6 promotes the first Windows App Server launcher hardening:
   `codex.exe`.
 - The visible Codex TUI still launches directly; only the background App Server
   process is wrapped.
+- Remote TUI launch passes `--dangerously-bypass-approvals-and-sandbox` by
+  default for trusted local development. `--no-bypass-sandbox` opts out.
+- Specific session resume accepts either `--resume <thread-id>` or the more
+  explicit `--session-id <thread-id>` and emits `codex resume <thread-id>`.
 - This keeps the user's global MCP configuration untouched. The launcher is a
   session/workspace lifecycle concern, not a permanent rewrite of
   `~/.codex/config.toml`.

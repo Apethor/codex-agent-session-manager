@@ -13,10 +13,31 @@ function tempWorkspace(): string {
 
 test('parseRemoteArgs rejects conflicting resume modes', () => {
   assert.throws(() => parseRemoteArgs(['--session-id', 'thread-a', '--resume-last']), /Choose only one/u);
+  assert.throws(() => parseRemoteArgs(['--resume', 'thread-a', '--session-id', 'thread-b']), /--session-id or --resume/u);
   assert.deepEqual(parseRemoteArgs(['--port', '4506', '--no-resume']), {
     port: '4506',
     noResume: true,
   });
+  assert.deepEqual(parseRemoteArgs(['--resume', 'thread-a']), {
+    sessionId: 'thread-a',
+  });
+});
+
+test('buildRemotePlan treats --resume alias as a session resume with default sandbox bypass', async () => {
+  const workspace = tempWorkspace();
+  try {
+    const options = parseRemoteArgs(['--workspace', workspace, '--port', '4506', '--resume', 'thread-a']);
+    const plan = await buildRemotePlan(
+      options,
+      { codexCommandResolver: () => 'codex-test' },
+    );
+
+    assert.equal(plan.mode, 'session');
+    assert.deepEqual(plan.tui.args.slice(0, 2), ['resume', 'thread-a']);
+    assert.equal(plan.tui.args.includes('--dangerously-bypass-approvals-and-sandbox'), true);
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
 });
 
 test('buildRemotePlan ignores legacy state and uses primary state only', async () => {
