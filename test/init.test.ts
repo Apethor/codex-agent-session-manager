@@ -96,6 +96,24 @@ test('init skips package updates when package.json is absent and honors --no-age
   }
 });
 
+test('init accepts package.json with UTF-8 BOM', () => {
+  const workspace = tempWorkspace();
+  try {
+    writeFileSync(join(workspace, 'package.json'), `\uFEFF${JSON.stringify({ name: 'bom-project' }, null, 2)}\n`);
+
+    const plan = buildInitPlan({ workspace });
+    applyInitPlan(plan);
+
+    const packageJson = JSON.parse(readFileSync(join(workspace, 'package.json'), 'utf8')) as {
+      scripts?: Record<string, string>;
+    };
+    assert.equal(packageJson.scripts?.['codex:init'], `${packageName} init`);
+    assert.equal(packageJson.scripts?.['codex:remote:dry-run'], `${packageName} remote --dry-run --no-resume`);
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }

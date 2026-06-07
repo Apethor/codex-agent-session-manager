@@ -171,10 +171,14 @@ function recordFrom(value: unknown): Record<string, unknown> {
   return isRecord(value) ? value : {};
 }
 
+function stripBom(content: string): string {
+  return content.startsWith('\uFEFF') ? content.slice(1) : content;
+}
+
 function packageJsonContent(content: string | null): string | null {
   if (content === null) return null;
 
-  const parsed = JSON.parse(content) as unknown;
+  const parsed = JSON.parse(stripBom(content)) as unknown;
   if (!isRecord(parsed)) throw new Error('package.json must contain a JSON object.');
 
   const scripts = { ...recordFrom(parsed.scripts) };
