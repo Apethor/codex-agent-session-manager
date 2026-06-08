@@ -368,9 +368,9 @@ Status after operator probe:
   restarted the session, ran `/mcp`, and observed no popups.
 - The operator then ran `npm run remote` in this repo and `/mcp` in the opened
   session and again observed no popups.
-- Decision: keep hidden launcher only for the managed App Server initial
-  process. Do not rewrite or virtualize the user's global MCP config by
-  default.
+- Decision at this phase: do not rewrite or virtualize the user's global MCP
+  config by default. Later native-init probes extended the same local hidden
+  launcher to the project-scoped session-manager MCP on Windows.
 
 ## Phase 7: App Server Lifecycle Tooling
 
@@ -476,9 +476,18 @@ Implemented:
 
 - `codex-agent-session-manager init`.
 - `--dry-run`, `--workspace <path>`, and `--no-agents`.
-- JSON output by default with redacted workspace paths.
+- Human-readable output by default with redacted workspace paths; `--json`
+  keeps machine-readable output available for automation.
 - Project-scoped `.codex/config.toml` registration for
-  `codex_agent_session_manager`.
+  `codex_agent_session_manager`, so a normal `codex` session launched from the
+  project can call the session-manager tools without using `remote`.
+- When `package.json` exists, the generated MCP config uses the project-local
+  `node_modules/codex-agent-session-manager/dist/cli.js` entrypoint so native
+  `codex` launchers do not depend on a globally installed npm shim.
+- On Windows, that project-scoped MCP config uses the generated
+  `.codex-agent-session-manager/windows-hidden-stdio-launcher.exe`; local
+  package installs run through `node node_modules/.../dist/cli.js serve`, and
+  no-package workspaces fall back to hidden `cmd.exe /d /s /c`.
 - `.gitignore` entry for `.codex-agent-session-manager/` runtime state.
 - `package.json` updates only when the file already exists:
   - `devDependencies.codex-agent-session-manager`
@@ -491,12 +500,21 @@ Implemented:
 - Small managed `AGENTS.md` block by default, skipped with `--no-agents`.
 - Windows hidden App Server launcher preparation uses the same launcher helper
   as `remote` and remains scoped to local runtime state.
+- Repo-local plugin marketplace integration was probed. A bundled-MCP plugin
+  works after explicit `codex plugin marketplace add` and `codex plugin add`,
+  but a generated repo marketplace alone did not make the MCP callable in a
+  fresh `codex exec` session. Keep plugin packaging as a future distribution
+  option; use `.codex/config.toml` for this release's native project mode.
 
 Validation:
 
 - Unit tests cover argument parsing, redacted dry-run output, no-write dry-run,
   target project application, idempotency, missing `package.json`, and
   `--no-agents`.
+- A fresh `codex exec` probe in a temporary project with `package.json`, local
+  `codex-agent-session-manager` dependency, generated hidden Windows MCP
+  config, and no `remote` call invoked
+  `codex_agent_session_manager/codex_session_manager_probe` successfully.
 - `npm run smoke` runs `init --dry-run` against a temporary workspace.
 - The command does not edit user global Codex config.
 

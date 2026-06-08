@@ -74,8 +74,13 @@ test('applyInitPlan creates project config, package scripts, gitignore, and AGEN
 
     const config = readFileSync(join(workspace, '.codex', 'config.toml'), 'utf8');
     assert.match(config, /\[mcp_servers\.codex_agent_session_manager\]/u);
-    assert.match(config, /command = "codex-agent-session-manager"/u);
-    assert.match(config, /args = \["serve"\]/u);
+    if (process.platform === 'win32') {
+      assert.match(config, /command = "\.codex-agent-session-manager\/windows-hidden-stdio-launcher\.exe"/u);
+      assert.match(config, /args = \["node", "node_modules\/codex-agent-session-manager\/dist\/cli\.js", "serve"\]/u);
+    } else {
+      assert.match(config, /command = "node"/u);
+      assert.match(config, /args = \["node_modules\/codex-agent-session-manager\/dist\/cli\.js", "serve"\]/u);
+    }
 
     const gitignore = readFileSync(join(workspace, '.gitignore'), 'utf8');
     assert.match(gitignore, /\.codex-agent-session-manager\//u);
@@ -127,6 +132,14 @@ test('init skips package updates when package.json is absent and honors --no-age
     assert.equal(existsSync(join(workspace, 'package.json')), false);
     assert.equal(existsSync(join(workspace, 'AGENTS.md')), false);
     assert.equal(existsSync(join(workspace, '.codex', 'config.toml')), true);
+    const config = readFileSync(join(workspace, '.codex', 'config.toml'), 'utf8');
+    if (process.platform === 'win32') {
+      assert.match(config, /command = "\.codex-agent-session-manager\/windows-hidden-stdio-launcher\.exe"/u);
+      assert.match(config, /args = \["cmd\.exe", "\/d", "\/s", "\/c", "codex-agent-session-manager serve"\]/u);
+    } else {
+      assert.match(config, /command = "codex-agent-session-manager"/u);
+      assert.match(config, /args = \["serve"\]/u);
+    }
     assert.equal(existsSync(join(workspace, '.gitignore')), true);
     assert.ok(plan.actions.some((action) => action.kind === 'skip' && action.target.endsWith('package.json')));
     assert.ok(plan.actions.some((action) => action.kind === 'skip' && action.target.endsWith('AGENTS.md')));

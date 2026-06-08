@@ -341,8 +341,9 @@ npm run remote
 ```
 
 Result: after restoring global MCP config to direct stdio, `npm run remote` and
-`/mcp` produced no popups. Keep the hidden launcher only for the managed App
-Server initial process.
+`/mcp` produced no popups. The project still avoids rewriting user global MCP
+config; later native-init probes also use the local hidden launcher for the
+project-scoped session-manager MCP on Windows.
 
 ## Latest Phase 7 Lifecycle Evidence
 

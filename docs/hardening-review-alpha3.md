@@ -356,6 +356,36 @@ real model-callable tool invocation. If direct stdio diagnostics are truly
 needed, they should be run with an explicit timeout/process handle and cleaned
 up before the agent claims success.
 
+### H-017: native `codex` launch should not depend on `remote` or global npm shims
+
+Status: fixed after alpha.4; release target alpha.5.
+
+The package already registered a project-scoped MCP server during `init`, but
+the generated config always used `command = "codex-agent-session-manager"` and
+`args = ["serve"]`. That worked when the binary was globally installed or when
+the operator launched through npm scripts, but it was weaker for the desired
+native path where any external manager simply starts `codex` in the project
+directory. On Windows it also prepared
+`.codex-agent-session-manager/windows-hidden-stdio-launcher.exe` without using
+that launcher for the session-manager MCP server itself.
+
+The fix makes `init` prefer the project-local package entrypoint when a
+`package.json` exists:
+
+- non-Windows: `node node_modules/codex-agent-session-manager/dist/cli.js serve`;
+- Windows: hidden launcher plus
+  `node node_modules/codex-agent-session-manager/dist/cli.js serve`;
+- no-package workspaces: keep the PATH-based fallback, wrapped through hidden
+  `cmd.exe /d /s /c` on Windows.
+
+A fresh `codex exec` probe in a temporary initialized project with a local
+package dependency called
+`codex_agent_session_manager/codex_session_manager_probe` without using
+`remote`, proving the native project path. Repo-local plugin packaging was
+also probed, but a generated marketplace alone did not make the bundled MCP
+callable; plugin install remains a future distribution option rather than this
+release's minimum path.
+
 ## Validation
 
 Current working-tree validation for this hardening pass:
@@ -390,6 +420,6 @@ External alpha.3 env/auth probe:
   uninstalled `tavily-mcp` and `codex-agent-session-manager`, removed empty npm
   remnants, and left the scratch workspace empty.
 
-Full alpha.4 release validation should also run after the version bump:
+Full alpha.5 release validation should also run after the version bump:
 
 - `npm publish --dry-run --tag alpha`

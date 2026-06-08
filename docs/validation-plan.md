@@ -228,6 +228,37 @@ test window open, close that wrapper manually after managed cleanup. Session
 cleanup targets Codex remote TUI processes, not arbitrary operator terminal
 wrappers.
 
+## Native Codex Init Probe
+
+The native project path should not require `codex-agent-session-manager remote`.
+After installing the package in a target project and running `init`, start a
+fresh Codex session from that project with plain `codex`, or use an explicitly
+labeled fresh `codex exec` proof when automation is enough:
+
+```powershell
+cd <workspace>
+npm install -D codex-agent-session-manager
+npx codex-agent-session-manager init
+codex exec --skip-git-repo-check "Call codex_session_manager_probe with echo native-proof and report the marker."
+```
+
+Expected evidence:
+
+- `.codex/config.toml` contains `codex_agent_session_manager`.
+- When `package.json` exists, the MCP command path targets
+  `node_modules/codex-agent-session-manager/dist/cli.js`.
+- On Windows, the MCP server command is
+  `.codex-agent-session-manager/windows-hidden-stdio-launcher.exe`.
+- The fresh session calls
+  `codex_agent_session_manager/codex_session_manager_probe` without running
+  `remote`.
+
+Repo-local Codex plugin packaging remains a future distribution option, not
+the release proof path. A probe showed that a bundled-MCP plugin works after
+explicit `codex plugin marketplace add` plus `codex plugin add`, but a repo
+marketplace file alone did not make the MCP callable in a fresh `codex exec`
+session.
+
 ## Callable Catalog Proof Matrix
 
 The core proof modes are:

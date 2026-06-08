@@ -341,8 +341,18 @@ Phase 9 adds project bootstrap:
 - `init` prints a human-readable action list by default and keeps JSON
   available through `--json`.
 - The project-scoped `.codex/config.toml` registers
-  `codex_agent_session_manager` with `command = "codex-agent-session-manager"`
-  and `args = ["serve"]`.
+  `codex_agent_session_manager` so a normal `codex` session launched from the
+  project can call the session-manager tools; the managed `remote` command is
+  optional rather than required for tool availability.
+- When `package.json` exists, the generated MCP config points at the
+  project-local `node_modules/codex-agent-session-manager/dist/cli.js`
+  entrypoint. This avoids depending on a global npm binary when third-party
+  launchers simply run `codex` in the project directory.
+- On Windows, the generated MCP config wraps the session-manager stdio server
+  with `.codex-agent-session-manager/windows-hidden-stdio-launcher.exe`. For
+  project-local installs the launcher runs `node node_modules/.../dist/cli.js
+  serve`; for workspaces without `package.json` it falls back to a hidden
+  `cmd.exe /d /s /c "codex-agent-session-manager serve"` path.
 - Runtime state is kept under `.codex-agent-session-manager/` and ignored by
   the target project's `.gitignore`.
 - `package.json` is updated only when it already exists. Scripts use the
@@ -351,8 +361,12 @@ Phase 9 adds project bootstrap:
   and MCP startup.
 - `AGENTS.md` gets a small managed block by default and can be skipped with
   `--no-agents`.
-- On Windows, hidden launcher preparation is local runtime state and remains
-  limited to the managed App Server initial process.
+- Repo-local Codex plugin packaging was probed as an alternative native path.
+  A plugin with bundled `.mcp.json` became visible after explicit
+  `codex plugin marketplace add` plus `codex plugin add`, but a repo
+  marketplace file alone was not enough to make the MCP callable in a fresh
+  `codex exec` session. The project-scoped `.codex/config.toml` path is
+  therefore the minimum reliable native integration for this release.
 
 Phase 10 hardens packaging:
 

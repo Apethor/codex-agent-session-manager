@@ -102,8 +102,18 @@ function validateInstalledProject(targetWorkspace: string): void {
   if (!config.includes('[mcp_servers.codex_agent_session_manager]')) {
     throw new Error('Generated .codex/config.toml did not register codex_agent_session_manager.');
   }
-  if (!config.includes('command = "codex-agent-session-manager"') || !config.includes('args = ["serve"]')) {
-    throw new Error('Generated .codex/config.toml has an unexpected command or args.');
+  if (process.platform === 'win32') {
+    if (
+      !config.includes('command = ".codex-agent-session-manager/windows-hidden-stdio-launcher.exe"')
+      || !config.includes('args = ["node", "node_modules/codex-agent-session-manager/dist/cli.js", "serve"]')
+    ) {
+      throw new Error('Generated Windows .codex/config.toml has an unexpected hidden launcher command or args.');
+    }
+  } else if (
+    !config.includes('command = "node"')
+    || !config.includes('args = ["node_modules/codex-agent-session-manager/dist/cli.js", "serve"]')
+  ) {
+    throw new Error('Generated .codex/config.toml has an unexpected local node command or args.');
   }
 
   const gitignore = readFileSync(join(targetWorkspace, '.gitignore'), 'utf8');

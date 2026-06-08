@@ -32,7 +32,7 @@ Install per project:
 ```powershell
 npm install -D codex-agent-session-manager
 npx codex-agent-session-manager init
-npm run codex:remote
+codex
 ```
 
 `init` is project-scoped. It updates `.codex/config.toml` with the
@@ -41,6 +41,17 @@ patterns to `.gitignore`, adds `codex:init`, `codex:init:dry-run`, remote, and
 App Server package scripts when `package.json` exists, and creates or updates a
 small `AGENTS.md` block unless `--no-agents` is passed. It does not edit the
 user's global Codex config.
+
+After `init`, a normal Codex session started from the project directory can use
+the session-manager MCP tools; `npm run codex:remote` is optional. Use the
+generated remote script when you want this package to start or reuse a managed
+App Server, launch a remote TUI, or use the session close/replace helpers.
+On Windows, the generated project config routes the session-manager stdio MCP
+server through `.codex-agent-session-manager/windows-hidden-stdio-launcher.exe`
+so plain `codex` sessions do not need a visible helper console for this MCP.
+When a `package.json` exists, the MCP config points at the project-local
+`node_modules/codex-agent-session-manager/dist/cli.js` entrypoint; otherwise it
+falls back to resolving `codex-agent-session-manager` from `PATH`.
 
 After upgrading this package in an existing project, rerun
 `npx codex-agent-session-manager init` to refresh the managed `AGENTS.md`,
@@ -231,6 +242,12 @@ On Windows, `remote` starts the managed App Server through a generated
 binary resolves to `codex.exe`. The visible Codex TUI still launches normally;
 only the background App Server process is wrapped. This does not edit the
 user's global `~/.codex/config.toml`.
+
+The same hidden launcher is also used by `init` for the project-scoped
+`codex_agent_session_manager` MCP server on Windows. This is separate from the
+remote/App Server lifecycle path: it lets third-party launchers that simply run
+`codex` in the project still get the session-manager tools without an extra
+visible stdio helper window.
 
 Agents can start or reuse the same managed App Server path through
 `codex_app_server_start`. The tool records a durable operation and leaves TUI

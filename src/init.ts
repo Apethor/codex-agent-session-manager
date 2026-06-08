@@ -12,6 +12,7 @@ const TOML_MARKER_START = '# BEGIN codex-agent-session-manager';
 const TOML_MARKER_END = '# END codex-agent-session-manager';
 const AGENTS_MARKER_START = '<!-- codex-agent-session-manager:start -->';
 const AGENTS_MARKER_END = '<!-- codex-agent-session-manager:end -->';
+const LOCAL_PACKAGE_CLI = `node_modules/${packageName}/dist/cli.js`;
 const GITIGNORE_ENTRIES = [
   `${PRIMARY_STATE_DIR_NAME}/`,
   '.env',
@@ -158,7 +159,26 @@ function appendBlock(content: string, block: string): string {
   return ensureTrailingNewline(before.length > 0 ? `${before}\n\n${block}` : block);
 }
 
-function mcpConfigBlock(): string {
+function mcpConfigBlock(windowsHiddenLauncherPath: string | null, useLocalPackage: boolean): string {
+  if (windowsHiddenLauncherPath !== null) {
+    const args = useLocalPackage
+      ? `["node", "${LOCAL_PACKAGE_CLI}", "serve"]`
+      : `["cmd.exe", "/d", "/s", "/c", "${packageName} serve"]`;
+    return `${TOML_MARKER_START}
+[mcp_servers.${MCP_SERVER_NAME}]
+command = "${PRIMARY_STATE_DIR_NAME}/windows-hidden-stdio-launcher.exe"
+args = ${args}
+${TOML_MARKER_END}`;
+  }
+
+  if (useLocalPackage) {
+    return `${TOML_MARKER_START}
+[mcp_servers.${MCP_SERVER_NAME}]
+command = "node"
+args = ["${LOCAL_PACKAGE_CLI}", "serve"]
+${TOML_MARKER_END}`;
+  }
+
   return `${TOML_MARKER_START}
 [mcp_servers.${MCP_SERVER_NAME}]
 command = "${packageName}"
@@ -166,8 +186,8 @@ args = ["serve"]
 ${TOML_MARKER_END}`;
 }
 
-function upsertMcpConfig(content: string | null): string {
-  const block = mcpConfigBlock();
+function upsertMcpConfig(content: string | null, windowsHiddenLauncherPath: string | null, useLocalPackage: boolean): string {
+  const block = mcpConfigBlock(windowsHiddenLauncherPath, useLocalPackage);
   if (content === null || content.trim().length === 0) return ensureTrailingNewline(block);
 
   const marked = replaceMarkedBlock(content, TOML_MARKER_START, TOML_MARKER_END, block);
@@ -310,6 +330,7 @@ function maybeAddFileUpdate(plan: InitPlan, path: string, current: string | null
 export function buildInitPlan(options: ParsedInitArgs = {}): InitPlan {
   const workspace = resolveWorkspaceRoot(options.workspace ?? process.cwd());
   const dryRun = options.dryRun === true;
+  const windowsHiddenLauncherPath = prepareWindowsHiddenLauncherForWorkspace(workspace, true);
   const plan: InitPlan = {
     ok: true,
     dryRun,
@@ -317,16 +338,18 @@ export function buildInitPlan(options: ParsedInitArgs = {}): InitPlan {
     mcpServerName: MCP_SERVER_NAME,
     actions: [],
     fileUpdates: [],
-    windowsHiddenLauncherPath: prepareWindowsHiddenLauncherForWorkspace(workspace, true),
+    windowsHiddenLauncherPath,
   };
 
   const codexConfigPath = workspacePath(workspace, '.codex', 'config.toml');
   const codexConfigCurrent = readTextIfExists(codexConfigPath);
+  const packageJsonPath = workspacePath(workspace, 'package.json');
+  const packageCurrent = readTextIfExists(packageJsonPath);
   maybeAddFileUpdate(
     plan,
     codexConfigPath,
     codexConfigCurrent,
-    upsertMcpConfig(codexConfigCurrent),
+    upsertMcpConfig(codexConfigCurrent, windowsHiddenLauncherPath, packageCurrent !== null),
     'register project-scoped MCP server',
   );
 
@@ -340,8 +363,6 @@ export function buildInitPlan(options: ParsedInitArgs = {}): InitPlan {
     'ignore local runtime state and common secret files',
   );
 
-  const packageJsonPath = workspacePath(workspace, 'package.json');
-  const packageCurrent = readTextIfExists(packageJsonPath);
   const packageNext = packageJsonContent(packageCurrent);
   if (packageNext === null) {
     plan.actions.push({
