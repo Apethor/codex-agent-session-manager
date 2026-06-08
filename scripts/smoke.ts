@@ -253,7 +253,7 @@ try {
       cliDeinit.status !== 0
       || !cliDeinit.stdout.includes('codex-agent-session-manager deinit dry-run')
       || !cliDeinit.stdout.includes('Dry run only; no files were changed. Pass --confirm to apply.')
-      || !cliDeinit.stdout.includes('packages to uninstall after deinit: codex-agent-session-manager')
+      || !cliDeinit.stdout.includes('packages selected for uninstall/removal: codex-agent-session-manager')
     ) {
       throw new Error(`Unexpected CLI deinit dry-run result: stdout=${cliDeinit.stdout} stderr=${cliDeinit.stderr}`);
     }

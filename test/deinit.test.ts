@@ -178,6 +178,71 @@ test('deinit can remove an explicitly empty npm scratch project', () => {
   }
 });
 
+test('deinit can remove scratch npm project containing only managed packages', () => {
+  const workspace = tempWorkspace();
+  try {
+    mkdirSync(join(workspace, '.codex'), { recursive: true });
+    mkdirSync(join(workspace, 'node_modules', '@modelcontextprotocol', 'server-everything'), { recursive: true });
+    writeFileSync(
+      join(workspace, '.codex', 'config.toml'),
+      [
+        '# BEGIN codex-agent-session-manager:mcp-add:everything',
+        '[mcp_servers.everything]',
+        'command = "node"',
+        'args = ["node_modules/@modelcontextprotocol/server-everything/dist/index.js", "stdio"]',
+        '# END codex-agent-session-manager:mcp-add',
+        '',
+        '# BEGIN codex-agent-session-manager',
+        '[mcp_servers.codex_agent_session_manager]',
+        'command = "codex-agent-session-manager"',
+        'args = ["serve"]',
+        '# END codex-agent-session-manager',
+        '',
+      ].join('\n'),
+    );
+    writeFileSync(
+      join(workspace, 'package.json'),
+      `${JSON.stringify({
+        name: 'scratch',
+        version: '1.0.0',
+        scripts: {
+          'codex:remote': 'codex-agent-session-manager remote',
+        },
+        devDependencies: {
+          [packageName]: packageVersion,
+          '@modelcontextprotocol/server-everything': '^2026.1.0',
+        },
+      }, null, 2)}\n`,
+    );
+    writeFileSync(join(workspace, 'package-lock.json'), '{}\n');
+    writeFileSync(join(workspace, 'node_modules', '.package-lock.json'), '{}\n');
+
+    const plan = buildDeinitPlan({
+      workspace,
+      confirm: true,
+      removeAddedMcps: true,
+      removeEmptyNpmProject: true,
+      removeEmptyCodexDir: true,
+    });
+    applyDeinitPlan(plan);
+
+    assert.equal(existsSync(join(workspace, 'package.json')), false);
+    assert.equal(existsSync(join(workspace, 'package-lock.json')), false);
+    assert.equal(existsSync(join(workspace, 'node_modules')), false);
+    assert.equal(existsSync(join(workspace, '.codex')), false);
+    assert.deepEqual(plan.packagesToUninstall, [
+      '@modelcontextprotocol/server-everything',
+      packageName,
+    ]);
+    assert.match(
+      String(deinitPlanPreview(plan, true).nextAction),
+      /No npm uninstall is needed/u,
+    );
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
 test('deinit refuses empty npm project removal when dependencies or custom scripts remain', () => {
   const workspace = tempWorkspace();
   try {

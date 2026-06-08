@@ -57,12 +57,14 @@ block, generated npm scripts, managed `AGENTS.md` block, and local runtime
 ignore rule. Runtime state under `.codex-agent-session-manager/` is removed
 only with `--remove-runtime`. MCP server blocks created through `mcp add npm`
 are kept unless `--remove-added-mcps` is passed; when removed, `deinit` reports
-the npm packages to uninstall separately. It does not stop a running Codex App
-Server, remote TUI, or already-loaded MCP server processes; stop or reload
-active sessions before uninstalling packages when live processes must exit.
+the npm packages selected for uninstall or scratch-project removal. It does not
+stop a running Codex App Server, remote TUI, or already-loaded MCP server
+processes; stop or reload active sessions before uninstalling packages when
+live processes must exit.
 Scratch test workspaces can also use `deinit --confirm
---remove-empty-npm-project --remove-empty-codex-dir` after package uninstall to
-remove an empty npm skeleton. This refuses to remove `package.json` when
+--remove-added-mcps --remove-empty-npm-project --remove-empty-codex-dir` to
+remove an npm skeleton that contains only this package and npm MCP packages
+created by `mcp add npm`. This refuses to remove `package.json` when unmanaged
 dependencies or custom scripts remain.
 
 ## Current Surface

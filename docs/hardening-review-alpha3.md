@@ -219,6 +219,25 @@ The CLI also adds `--no-default-stdio-arg` for npm MCP packages whose entrypoint
 defaults to stdio and should not receive a positional `"stdio"` argument. This
 keeps the Tavily MCP probe inside the managed installer flow.
 
+### H-012: scratch cleanup still required a second npm skeleton pass
+
+Status: fixed in working tree for alpha.3.
+
+After the Tavily replay, the intended cleanup flow still had a rough edge:
+`deinit --remove-empty-npm-project` only removed `package.json` when dependency
+fields were already empty. In a scratch project created for MCP testing, the
+only remaining dependencies are often `codex-agent-session-manager` and MCP
+packages created by managed `mcp add npm` blocks. That made complete cleanup
+depend on a separate `npm uninstall` pass before removing the empty npm
+skeleton.
+
+The fix lets `deinit` treat the session manager package and, when
+`--remove-added-mcps` is passed, managed npm MCP packages as removable for the
+empty-project decision. It still refuses removal when unmanaged dependencies or
+custom scripts remain. `.codex/` cleanup now also considers files that the same
+deinit plan will delete, so a directory containing only a managed
+`config.toml` can be removed with `--remove-empty-codex-dir`.
+
 ## Accepted / Deferred Risks
 
 ### D-001: custom `OperationStore({ stateFile })` is intentionally unbounded

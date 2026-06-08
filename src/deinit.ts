@@ -7,7 +7,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 import { PRIMARY_STATE_DIR_NAME } from './app-server/state.js';
 import { redactValue } from './security/redaction.js';
@@ -84,7 +84,8 @@ Options:
   --remove-added-mcps    Remove MCP server blocks created by "mcp add npm".
   --remove-empty-npm-project
                          Remove package.json, package-lock.json, and node_modules
-                         only when package.json has no dependencies and no custom scripts.
+                         only when package.json has no unmanaged dependencies
+                         and no custom scripts.
   --remove-empty-codex-dir
                          Remove .codex/ only when it is empty after config cleanup.
   --help                 Show this help.
@@ -307,6 +308,15 @@ function hasNonEmptyRecord(value: unknown): boolean {
   return isRecord(value) && Object.keys(value).length > 0;
 }
 
+function recordWithoutPackageNames(value: unknown, removablePackages: ReadonlySet<string>): Record<string, unknown> {
+  if (!isRecord(value)) return {};
+  const next = { ...value };
+  for (const packageToRemove of removablePackages) {
+    delete next[packageToRemove];
+  }
+  return next;
+}
+
 function hasCustomScripts(value: unknown): boolean {
   if (!isRecord(value)) return false;
   const entries = Object.entries(value);
@@ -314,19 +324,37 @@ function hasCustomScripts(value: unknown): boolean {
   return !(entries.length === 1 && entries[0]?.[0] === 'test' && entries[0]?.[1] === 'echo "Error: no test specified" && exit 1');
 }
 
-function isEmptyNpmProjectPackageJson(content: string | null): boolean {
+function isEmptyNpmProjectPackageJson(content: string | null, removablePackages: readonly string[] = []): boolean {
   if (content === null) return false;
   const parsed = JSON.parse(stripBom(content)) as unknown;
   if (!isRecord(parsed)) return false;
-  return !hasNonEmptyRecord(parsed.dependencies)
-    && !hasNonEmptyRecord(parsed.devDependencies)
-    && !hasNonEmptyRecord(parsed.optionalDependencies)
-    && !hasNonEmptyRecord(parsed.peerDependencies)
+  const removable = new Set(removablePackages);
+  return !hasNonEmptyRecord(recordWithoutPackageNames(parsed.dependencies, removable))
+    && !hasNonEmptyRecord(recordWithoutPackageNames(parsed.devDependencies, removable))
+    && !hasNonEmptyRecord(recordWithoutPackageNames(parsed.optionalDependencies, removable))
+    && !hasNonEmptyRecord(recordWithoutPackageNames(parsed.peerDependencies, removable))
     && !hasCustomScripts(parsed.scripts);
 }
 
 function directoryIsEmpty(path: string): boolean {
   return existsSync(path) && readdirSync(path).length === 0;
+}
+
+function plannedFileDeletePaths(plan: DeinitPlan): Set<string> {
+  return new Set(
+    plan.fileUpdates
+      .filter((update) => update.content === null)
+      .map((update) => resolve(update.path)),
+  );
+}
+
+function directoryWouldBeEmptyAfterPlannedFileDeletes(path: string, plan: DeinitPlan): boolean {
+  if (!existsSync(path)) return false;
+  const plannedDeletes = plannedFileDeletePaths(plan);
+  return readdirSync(path, { withFileTypes: true }).every((entry) => {
+    if (entry.isDirectory()) return false;
+    return plannedDeletes.has(resolve(join(path, entry.name)));
+  });
 }
 
 function previewPath(path: string, workspace: string): string {
@@ -417,7 +445,7 @@ export function buildDeinitPlan(options: ParsedDeinitArgs = {}): DeinitPlan {
   const packageCurrent = readTextIfExists(packageJsonPath);
   const packageAfterScriptRemoval = removeGeneratedPackageScripts(packageCurrent);
   const removeEmptyNpmProject = options.removeEmptyNpmProject === true;
-  const packageNext = removeEmptyNpmProject && isEmptyNpmProjectPackageJson(packageAfterScriptRemoval)
+  const packageNext = removeEmptyNpmProject && isEmptyNpmProjectPackageJson(packageAfterScriptRemoval, plan.packagesToUninstall)
     ? null
     : packageAfterScriptRemoval;
   maybeAddFileUpdate(
@@ -476,7 +504,7 @@ export function buildDeinitPlan(options: ParsedDeinitArgs = {}): DeinitPlan {
   addRuntimeAction(plan, options.removeRuntime === true);
   const codexDirPath = workspacePath(workspace, '.codex');
   if (options.removeEmptyCodexDir === true) {
-    if (directoryIsEmpty(codexDirPath)) {
+    if (directoryIsEmpty(codexDirPath) || directoryWouldBeEmptyAfterPlannedFileDeletes(codexDirPath, plan)) {
       plan.actions.push({
         kind: 'delete',
         target: codexDirPath,
@@ -515,6 +543,17 @@ export function applyDeinitPlan(plan: DeinitPlan): void {
   }
 }
 
+function removesNpmProjectMetadata(plan: DeinitPlan): boolean {
+  return plan.fileUpdates.some((update) => update.content === null && update.path.endsWith('package.json'));
+}
+
+function deinitNextAction(plan: DeinitPlan): string {
+  if (removesNpmProjectMetadata(plan)) {
+    return 'No npm uninstall is needed when --remove-empty-npm-project removes package.json, package-lock.json, and node_modules. Stop or reload active sessions separately if live MCP processes matter.';
+  }
+  return `Run npm uninstall -D ${plan.packagesToUninstall.join(' ')} after deinit if those packages should be removed from package-lock.json and node_modules.`;
+}
+
 export function deinitPlanPreview(plan: DeinitPlan, applied: boolean): Record<string, unknown> {
   return redactValue(
     {
@@ -525,7 +564,7 @@ export function deinitPlanPreview(plan: DeinitPlan, applied: boolean): Record<st
       actions: plan.actions,
       notes: deinitLifecycleNotes(),
       packagesToUninstall: plan.packagesToUninstall,
-      nextAction: `Run npm uninstall -D ${plan.packagesToUninstall.join(' ')} after deinit if those packages should be removed from package-lock.json and node_modules.`,
+      nextAction: deinitNextAction(plan),
     },
     { workspace: plan.workspace },
   ) as Record<string, unknown>;
@@ -549,13 +588,15 @@ function formatHumanDeinitPlan(plan: DeinitPlan, applied: boolean): string {
     const kind = action.kind.padEnd(6, ' ');
     lines.push(`  ${kind} ${previewPath(action.target, plan.workspace)} - ${action.reason}`);
   }
-  lines.push('', `packages to uninstall after deinit: ${plan.packagesToUninstall.join(', ')}`);
+  lines.push('', `packages selected for uninstall/removal: ${plan.packagesToUninstall.join(', ')}`);
   lines.push('', 'notes:');
   for (const note of deinitLifecycleNotes()) {
     lines.push(`  - ${note}`);
   }
   if (plan.dryRun) {
     lines.push('', 'Dry run only; no files were changed. Pass --confirm to apply.');
+  } else if (removesNpmProjectMetadata(plan)) {
+    lines.push('', 'Next: no npm uninstall is needed because empty npm project metadata and node_modules were removed.');
   } else {
     lines.push('', `Next: npm uninstall -D ${plan.packagesToUninstall.join(' ')}`);
   }

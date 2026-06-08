@@ -69,8 +69,13 @@ The smoke must prove:
 - CLI init dry-run emits human-readable output for a temporary workspace
   without writing files; `--json` keeps machine-readable output.
 - CLI deinit dry-run emits human-readable output for a temporary workspace
-  without writing files, reports packages to uninstall afterward, and warns
-  that active App Server/TUI/MCP processes require stop or reload separately.
+  without writing files, reports packages selected for uninstall/removal, and
+  warns that active App Server/TUI/MCP processes require stop or reload
+  separately.
+- CLI deinit can remove a scratch npm project through explicit
+  `--remove-added-mcps --remove-empty-npm-project --remove-empty-codex-dir`
+  when the only package metadata left belongs to the session manager and
+  managed npm MCP installs.
 - CLI prompt files are accepted only from the current workspace, reject
   symlink/junction escapes, and enforce prompt size limits before scheduling
   refresh/launch/replace work.
@@ -165,8 +170,11 @@ Current checks:
   `--confirm` for real edits, and `--remove-runtime` before deleting local
   runtime state.
 - remove empty scratch npm project remnants only through explicit
-  `--remove-empty-npm-project`, refusing when dependencies or custom scripts
-  remain, and remove `.codex/` only when empty.
+  `--remove-empty-npm-project`, treating the session manager and managed npm
+  MCP packages as removable only when their managed config blocks are also
+  removed, refusing when unmanaged dependencies or custom scripts remain, and
+  remove `.codex/` when it is empty or will become empty through planned
+  managed file deletions.
 - keep managed npm MCP blocks created by `mcp add npm` unless
   `--remove-added-mcps` is explicitly passed.
 - keep direct MCP SDK calls classified as diagnostic only; final proof remains
