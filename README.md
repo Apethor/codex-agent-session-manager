@@ -380,6 +380,7 @@ managed remote/App Server cleanup is complete.
 
 - `docs/architecture.md`: target architecture.
 - `docs/project-plan.md`: phase plan.
+- `docs/release.md`: npm trusted-publishing setup and release workflow.
 - `docs/validation-plan.md`: initial validation matrix.
 - `docs/handoff-template.md`: handoff for starting a fresh Codex session.
 - `docs/mcp-typescript-architecture-research.md`: stack research.
